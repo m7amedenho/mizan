@@ -1,0 +1,1 @@
+components/tasks/PomodoroTimer.tsx(153,36): error TS2339: Property 'primaryDark' does not exist on type '{ readonly primary: "#1A4731"; readonly primaryMid: "#2D6A4F"; readonly primaryLight: "#40916C"; readonly primarySoft: "#74C69D"; readonly primaryPale: "#D8F3DC"; readonly primaryXPale: "#F0FAF3"; ... 36 more ...; readonly moodStressed: "#C1121F"; }'.
