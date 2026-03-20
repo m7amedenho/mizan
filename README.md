@@ -189,37 +189,37 @@ This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**
 
 See [LICENSE](https://www.google.com/search?q=LICENSE) for full details.
 
------
+---
 
 ## 👨‍💻 المطور
 
-\<div align="center"\>
+<div align="center">
 
-**Mohamed Hamid · م. محمد حامد**<br>
+**Mohamed Hamid · م. محمد حامد**<br/>
 Full Stack & Mobile Developer
 
-<br>
+<br/>
 
-[](https://github.com/m7amedenho)
-[](https://www.linkedin.com/in/m7amedenho/)
-[](https://www.instagram.com/m.7amedenho)
+[![GitHub](https://img.shields.io/badge/GitHub-m7amedenho-181717?style=for-the-badge&logo=github)](https://github.com/m7amedenho)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-m7amedenho-0A66C2?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/m7amedenho/)
+[![Instagram](https://img.shields.io/badge/Instagram-m.7amedenho-E4405F?style=for-the-badge&logo=instagram)](https://www.instagram.com/m.7amedenho)
 
-\</div\>
+</div>
 
------
+---
 
 ## 🌐 الموقع الرسمي
 
-🚧 Landing page coming soon at: [your-domain.com](https://www.google.com/search?q=%23)
+🚧 Landing page coming soon at: [your-domain.com](#)
 
-If you find this helpful, please ⭐ star the repository\!
+If you find this helpful, please ⭐ star the repository!
 
-[](https://github.com/m7amedenho/mizan)
+[![Stars](https://img.shields.io/github/stars/m7amedenho/mizan?style=social)](https://github.com/m7amedenho/mizan)
 
------
+---
 
-\<p align="center"\>
-صُنع بـ ❤️ في مصر · Made with ❤️ in Egypt
-<br>
-© 2026 Mohamed Hamid · جميع الحقوق محفوظة
-\</p\>
+<p align="center">
+  صُنع بـ ❤️ في مصر · Made with ❤️ in Egypt
+  <br/>
+  © 2026 Mohamed Hamid · جميع الحقوق محفوظة
+</p>
