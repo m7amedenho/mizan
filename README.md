@@ -1,3 +1,4 @@
+````
 <div align="center">
 
 <pre>
@@ -11,7 +12,8 @@
 
 # ميزان · Mizan
 
-### نظّم يومك، مهامك، فلوسك، ومشاريعك في تطبيق عربي واحد<br/>An Arabic-first productivity and finance companion for your daily life
+### نظّم يومك، مهامك، فلوسك، ومشاريعك في تطبيق عربي واحد
+An Arabic-first productivity and finance companion for your daily life
 
 ![License](https://img.shields.io/badge/License-GPL--3.0-red?style=flat)
 ![Platform](https://img.shields.io/badge/Platform-iOS%20%26%20Android-blue?style=flat)
@@ -85,7 +87,7 @@ Screenshots coming soon — Landing page: [your-domain.com](#)
 
 ```bash
 # Clone the repository
-git clone https://github.com/m7amedenho/mizan.git
+git clone [https://github.com/m7amedenho/mizan.git](https://github.com/m7amedenho/mizan.git)
 
 # Navigate to project
 cd mizan
@@ -101,7 +103,7 @@ npx expo run:android
 
 # Run on iOS
 npx expo run:ios
-```
+````
 
 ### Build for production
 
@@ -113,7 +115,7 @@ npx eas build --platform android
 npx eas build --platform ios
 ```
 
----
+-----
 
 ## 📁 هيكل المشروع
 
@@ -144,38 +146,41 @@ mizan/
 └── package.json              # Project metadata and scripts
 ```
 
----
+-----
 
 ## 🤝 المساهمة
 
 نرحّب جدًا بأي مساهمة تطور **ميزان** وتخليه مفيد أكثر للشباب العربي. سواء كانت Feature جديدة، تحسين في الأداء، أو polishing للواجهة، فمشاركتك محل تقدير.
 
-1. Fork the repo
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push your branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+1.  Fork the repo
+2.  Create a feature branch: `git checkout -b feature/amazing-feature`
+3.  Commit your changes: `git commit -m 'Add amazing feature'`
+4.  Push your branch: `git push origin feature/amazing-feature`
+5.  Open a Pull Request
 
 **ملاحظة:** أي مساهمة في الـ UI يجب أن تحافظ على تجربة عربية RTL بشكل كامل.
 
----
+-----
 
 ## 📜 الرخصة
 
 هذا المشروع مرخص تحت رخصة **GNU General Public License v3.0**.
 
 **ما يُسمح به:**
-- ✅ استخدام الكود لأغراض شخصية وتعليمية
-- ✅ تعديل الكود والبناء عليه
-- ✅ توزيع النسخ المعدلة أو الأصلية تحت نفس الرخصة GPL-3.0
+
+  - ✅ استخدام الكود لأغراض شخصية وتعليمية
+  - ✅ تعديل الكود والبناء عليه
+  - ✅ توزيع النسخ المعدلة أو الأصلية تحت نفس الرخصة GPL-3.0
 
 **الشرط الأساسي (Copyleft):**
-- ⚠️ أي نسخة يتم توزيعها بعد التعديل يجب أن تظل مفتوحة المصدر تحت نفس الرخصة GPL-3.0
+
+  - ⚠️ أي نسخة يتم توزيعها بعد التعديل يجب أن تظل مفتوحة المصدر تحت نفس الرخصة GPL-3.0
 
 **ما لا يُسمح به:**
-- ❌ تحويل المشروع إلى نسخة مغلقة المصدر عند إعادة التوزيع
-- ❌ استخدام اسم **"ميزان / Mizan"** أو الشعار أو الهوية البصرية في أي نسخة مشتقة بدون إذن كتابي
-- ❌ حذف إشارة حقوق المؤلف أو إخفاء الرخصة الأصلية
+
+  - ❌ تحويل المشروع إلى نسخة مغلقة المصدر عند إعادة التوزيع
+  - ❌ استخدام اسم **"ميزان / Mizan"** أو الشعار أو الهوية البصرية في أي نسخة مشتقة بدون إذن كتابي
+  - ❌ حذف إشارة حقوق المؤلف أو إخفاء الرخصة الأصلية
 
 **حقوق العلامة التجارية:**
 اسم **"ميزان / Mizan"** وشعار التطبيق علامات تجارية وحقوق هوية مملوكة للمطور. رخصة GPL-3.0 تغطي **الكود المصدري فقط** ولا تمنح حق استخدام الاسم أو الشعار أو أي عناصر Branding رسمية.
@@ -183,41 +188,39 @@ mizan/
 **English summary:**
 This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. You may use, study, modify, and redistribute the source code under GPL-3.0. Any distributed derivative work must remain open source under the same license. The name **"ميزان / Mizan"**, the logo, and the visual identity are **not** licensed under GPL-3.0 and may not be used in forks, commercial distributions, or rebranded products without explicit written permission from the author. If you need proprietary distribution rights or trademark permission, please contact the author.
 
-See [LICENSE](LICENSE) for full details.
+See [LICENSE](https://www.google.com/search?q=LICENSE) for full details.
 
----
+-----
 
 ## 👨‍💻 المطور
 
-<div align="center">
+\<div align="center"\>
 
-**Mohamed Hamid · م. محمد حامد**<br/>
+**Mohamed Hamid · م. محمد حامد**<br>
 Full Stack & Mobile Developer
 
-<br/>
+<br>
 
-[![GitHub](https://img.shields.io/badge/GitHub-m7amedenho-181717?style=for-the-badge&logo=github)](https://github.com/m7amedenho)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-m7amedenho-0A66C2?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/m7amedenho/)
-[![Instagram](https://img.shields.io/badge/Instagram-m.7amedenho-E4405F?style=for-the-badge&logo=instagram)](https://www.instagram.com/m.7amedenho)
+[](https://github.com/m7amedenho)
+[](https://www.linkedin.com/in/m7amedenho/)
+[](https://www.instagram.com/m.7amedenho)
 
-</div>
+\</div\>
 
----
+-----
 
 ## 🌐 الموقع الرسمي
 
-🚧 Landing page coming soon at: [your-domain.com](#)
+🚧 Landing page coming soon at: [your-domain.com](https://www.google.com/search?q=%23)
 
-If you find this helpful, please ⭐ star the repository!
+If you find this helpful, please ⭐ star the repository\!
 
-[![Stars](https://img.shields.io/github/stars/m7amedenho/mizan?style=social)](https://github.com/m7amedenho/mizan)
+[](https://github.com/m7amedenho/mizan)
 
----
+-----
 
-<p align="center">
-  صُنع بـ ❤️ في مصر · Made with ❤️ in Egypt
-  <br/>
-  © 2026 Mohamed Hamid · جميع الحقوق محفوظة
-</p>
-#   m i z a n  
- 
+\<p align="center"\>
+صُنع بـ ❤️ في مصر · Made with ❤️ in Egypt
+<br>
+© 2026 Mohamed Hamid · جميع الحقوق محفوظة
+\</p\>
