@@ -221,7 +221,5 @@ If you find this helpful, please ⭐ star the repository!
 ---
 
 <p align="center">
-  صُنع بـ ❤️ في مصر · Made with ❤️ in Egypt
-  <br/>
   © 2026 Mohamed Hamed · جميع الحقوق محفوظة
 </p>
