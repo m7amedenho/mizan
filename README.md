@@ -88,7 +88,7 @@ An Arabic-first productivity and finance companion for your daily life
 
 ```bash
 # Clone the repository
-git clone [https://github.com/m7amedenho/mizan.git](https://github.com/m7amedenho/mizan.git)
+git clone https://github.com/m7amedenho/mizan.git
 
 # Navigate to project
 cd mizan
@@ -197,7 +197,7 @@ See [LICENSE](https://www.google.com/search?q=LICENSE) for full details.
 
 <div align="center">
 
-**Mohamed Hamid · م. محمد حامد**<br/>
+**Mohamed Hamed · م. محمد حامد**<br/>
 Full Stack & Mobile Developer
 
 <br/>
@@ -223,5 +223,5 @@ If you find this helpful, please ⭐ star the repository!
 <p align="center">
   صُنع بـ ❤️ في مصر · Made with ❤️ in Egypt
   <br/>
-  © 2026 Mohamed Hamid · جميع الحقوق محفوظة
+  © 2026 Mohamed Hamed · جميع الحقوق محفوظة
 </p>
