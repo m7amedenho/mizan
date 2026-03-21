@@ -1,6 +1,6 @@
 <div align="center">
 <div align="center">
-  <img src="./assets/images/Hero.jpg" alt="Mizan App Header" width="100%" />
+  <img src="./assets/images/Hero.png" alt="Mizan App Header" width="100%" />
 </div>
 
 <br />
