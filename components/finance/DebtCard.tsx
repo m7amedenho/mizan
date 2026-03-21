@@ -5,7 +5,7 @@ import { Debt } from '@/types'
 import { Colors } from '@/constants/colors'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { calcDebtRemaining, calcDebtPercent } from '@/utils/financialCalc'
-import { formatAmountAr } from '@/utils/dateHelpers'
+import { formatAmountAr, getDayLabel } from '@/utils/dateHelpers'
 import { useFinanceStore } from '@/stores/useFinanceStore'
 
 export function DebtCard({ debt, settled }: { debt: Debt; settled?: boolean }) {
@@ -68,6 +68,28 @@ export function DebtCard({ debt, settled }: { debt: Debt; settled?: boolean }) {
         <Text style={{ fontFamily: 'Cairo-Regular', fontSize: 12, color: Colors.textMuted, marginTop: 8 }}>
           {debt.note}
         </Text>
+      )}
+
+      {debt.payments.length > 0 && (
+        <View style={{ marginTop: 10, gap: 6 }}>
+          {debt.payments.slice(-3).reverse().map((payment) => (
+            <View key={payment.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: Colors.background, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ fontFamily: 'Cairo-SemiBold', fontSize: 12, color: Colors.textPrimary }}>
+                  {formatAmountAr(payment.amount)}
+                </Text>
+                {payment.transactionId && (
+                  <View style={{ backgroundColor: Colors.primaryPale, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
+                    <Text style={{ fontFamily: 'Cairo-SemiBold', fontSize: 10, color: Colors.primary }}>من معاملة</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={{ fontFamily: 'Cairo-Regular', fontSize: 11, color: Colors.textMuted }}>
+                {getDayLabel(payment.date)}
+              </Text>
+            </View>
+          ))}
+        </View>
       )}
 
       {!settled && (

@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { storage } from '@/utils/storage'
 import { Goal, Challenge } from '@/types'
-import { generateId } from '@/utils/dateHelpers'
+import { generateId, getTodayString, toLocalDateString } from '@/utils/dateHelpers'
 
 interface GoalState {
   goals: Goal[]
@@ -33,7 +33,7 @@ export const useGoalStore = create<GoalState>()(
       })),
       addChallenge: (c) => { const id = generateId(); set((s) => ({ challenges: [...s.challenges, { ...c, id, checkIns: [], createdAt: new Date().toISOString() }] })); return id },
       checkInChallenge: (id) => {
-        const today = new Date().toISOString().split('T')[0]
+        const today = getTodayString()
         set((s) => ({
           challenges: s.challenges.map((c) => {
             if (c.id !== id || c.checkIns.includes(today)) return c
@@ -49,7 +49,7 @@ export const useGoalStore = create<GoalState>()(
         let streak = 0
         for (let i = 0; i < c.durationDays; i++) {
           const d = new Date(); d.setDate(d.getDate() - i)
-          if (c.checkIns.includes(d.toISOString().split('T')[0])) streak++
+          if (c.checkIns.includes(toLocalDateString(d))) streak++
           else break
         }
         return streak

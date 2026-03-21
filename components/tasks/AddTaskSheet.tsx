@@ -1,14 +1,16 @@
 import { useMemo, useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native'
+import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { Colors } from '@/constants/colors'
 import { TASK_CATEGORIES } from '@/constants/categories'
 import { useTaskStore } from '@/stores/useTaskStore'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
-import { generateId, getTodayString } from '@/utils/dateHelpers'
+import { combineDateAndTime, generateId, getTodayString } from '@/utils/dateHelpers'
 import { configureNotifications, scheduleTaskReminder } from '@/utils/notifications'
 import { useAppStore } from '@/stores/useAppStore'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { inputLabel, inputStyle } from '@/constants/styles'
+import { NativeDateField } from '@/components/ui/NativeDateField'
+import { NativeTimeField } from '@/components/ui/NativeTimeField'
 import type { Priority, Recurrence } from '@/types'
 
 interface Props {
@@ -30,8 +32,8 @@ const RECS: { key: Recurrence; label: string }[] = [
 ]
 
 export function AddTaskSheet({ visible, onClose }: Props) {
-  const addTask = useTaskStore((s) => s.addTask)
-  const notificationsEnabled = useAppStore((s) => s.settings.notificationsEnabled)
+  const addTask = useTaskStore((state) => state.addTask)
+  const notificationsEnabled = useAppStore((state) => state.settings.notificationsEnabled)
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -57,21 +59,21 @@ export function AddTaskSheet({ visible, onClose }: Props) {
 
   const save = async () => {
     if (!canSave) return
+
     const subTasks = subTasksRaw
       .split('\n')
-      .map((s) => s.trim())
+      .map((item) => item.trim())
       .filter(Boolean)
       .map((subTitle) => ({ id: generateId(), title: subTitle, completed: false }))
 
     let notificationId: string | undefined
-    if (notificationsEnabled && dueTime.trim()) {
+    const reminderDate = dueTime ? combineDateAndTime(dueDate, dueTime) : null
+
+    if (notificationsEnabled && reminderDate && reminderDate.getTime() > Date.now()) {
       try {
-        const reminderDate = new Date(`${dueDate.trim()}T${dueTime.trim()}:00`)
-        if (!Number.isNaN(reminderDate.getTime()) && reminderDate.getTime() > Date.now()) {
-          const ok = await configureNotifications()
-          if (ok) {
-            notificationId = await scheduleTaskReminder('', title.trim(), reminderDate)
-          }
+        const ok = await configureNotifications()
+        if (ok) {
+          notificationId = await scheduleTaskReminder('', title.trim(), reminderDate)
         }
       } catch {
         notificationId = undefined
@@ -82,7 +84,7 @@ export function AddTaskSheet({ visible, onClose }: Props) {
       title: title.trim(),
       description: description.trim() || undefined,
       dueDate,
-      dueTime: dueTime.trim() || undefined,
+      dueTime: dueTime || undefined,
       priority,
       category,
       completed: false,
@@ -96,7 +98,7 @@ export function AddTaskSheet({ visible, onClose }: Props) {
   }
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} title='إضافة مهمة جديدة' snapPoints={['70%', '94%']}>
+    <BottomSheet visible={visible} onClose={onClose} title='إضافة مهمة جديدة' snapPoints={['78%', '96%']}>
       <View style={{ gap: 10 }}>
         <Text style={inputLabel}>عنوان المهمة</Text>
         <TextInput
@@ -117,81 +119,86 @@ export function AddTaskSheet({ visible, onClose }: Props) {
           style={[inputStyle, { height: 90, textAlign: 'right', textAlignVertical: 'top', paddingTop: 12 }]}
         />
 
-        <Text style={inputLabel}>التاريخ والوقت</Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TextInput
-            value={dueDate}
-            onChangeText={setDueDate}
-            placeholder='YYYY-MM-DD'
-            placeholderTextColor={Colors.textMuted}
-            style={[inputStyle, { flex: 1, textAlign: 'center' }]}
-          />
-          <TextInput
-            value={dueTime}
-            onChangeText={setDueTime}
-            placeholder='HH:mm'
-            placeholderTextColor={Colors.textMuted}
-            style={[inputStyle, { width: 120, textAlign: 'center' }]}
-          />
-        </View>
+        <NativeDateField
+          label='تاريخ المهمة'
+          value={dueDate}
+          minimumDate={new Date()}
+          onChange={setDueDate}
+        />
+
+        <NativeTimeField
+          label='وقت التذكير'
+          value={dueTime}
+          onChange={setDueTime}
+        />
+
+        {dueTime ? (
+          <TouchableOpacity onPress={() => setDueTime('')} activeOpacity={0.75}>
+            <Text style={{ fontFamily: 'Cairo-SemiBold', fontSize: 12, color: Colors.danger, textAlign: 'left' }}>
+              حذف وقت التذكير
+            </Text>
+          </TouchableOpacity>
+        ) : null}
 
         <Text style={inputLabel}>الأولوية</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          {PRIORITIES.map((p) => (
+          {PRIORITIES.map((item) => (
             <TouchableOpacity
-              key={p.key}
-              onPress={() => setPriority(p.key)}
+              key={item.key}
+              onPress={() => setPriority(item.key)}
               style={{
                 flex: 1,
                 borderRadius: 20,
                 paddingVertical: 9,
                 alignItems: 'center',
                 borderWidth: 1,
-                borderColor: priority === p.key ? Colors.primary : Colors.border,
-                backgroundColor: priority === p.key ? Colors.primaryPale : Colors.surface,
+                borderColor: priority === item.key ? Colors.primary : Colors.border,
+                backgroundColor: priority === item.key ? Colors.primaryPale : Colors.surface,
               }}
             >
-              <Text style={{ fontFamily: 'Cairo-SemiBold', color: priority === p.key ? Colors.primary : Colors.textSecondary }}>{p.label}</Text>
+              <Text style={{ fontFamily: 'Cairo-SemiBold', color: priority === item.key ? Colors.primary : Colors.textSecondary }}>
+                {item.label}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
 
         <Text style={inputLabel}>التصنيف</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-          {TASK_CATEGORIES.map((c) => (
+          {TASK_CATEGORIES.map((item) => (
             <TouchableOpacity
-              key={c.key}
-              onPress={() => setCategory(c.key)}
+              key={item.key}
+              onPress={() => setCategory(item.key)}
               style={{
                 borderRadius: 20,
                 paddingHorizontal: 12,
                 paddingVertical: 8,
                 borderWidth: 1,
-                borderColor: category === c.key ? Colors.primary : Colors.border,
-                backgroundColor: category === c.key ? Colors.primaryPale : Colors.surface,
+                borderColor: category === item.key ? Colors.primary : Colors.border,
+                backgroundColor: category === item.key ? Colors.primaryPale : Colors.surface,
               }}
             >
-              <Text style={{ fontFamily: 'Cairo-SemiBold', color: Colors.textPrimary }}>{c.emoji} {c.label}</Text>
+              <Text style={{ fontFamily: 'Cairo-SemiBold', color: Colors.textPrimary }}>{item.emoji} {item.label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
         <Text style={inputLabel}>التكرار</Text>
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-          {RECS.map((r) => (
+          {RECS.map((item) => (
             <TouchableOpacity
-              key={r.key}
-              onPress={() => setRecurrence(r.key)}
+              key={item.key}
+              onPress={() => setRecurrence(item.key)}
               style={{
                 borderRadius: 20,
                 paddingHorizontal: 12,
                 paddingVertical: 8,
                 borderWidth: 1,
-                borderColor: recurrence === r.key ? Colors.primary : Colors.border,
-                backgroundColor: recurrence === r.key ? Colors.primaryPale : Colors.surface,
+                borderColor: recurrence === item.key ? Colors.primary : Colors.border,
+                backgroundColor: recurrence === item.key ? Colors.primaryPale : Colors.surface,
               }}
             >
-              <Text style={{ fontFamily: 'Cairo-SemiBold', color: Colors.textPrimary }}>{r.label}</Text>
+              <Text style={{ fontFamily: 'Cairo-SemiBold', color: Colors.textPrimary }}>{item.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -200,7 +207,7 @@ export function AddTaskSheet({ visible, onClose }: Props) {
         <TextInput
           value={subTasksRaw}
           onChangeText={setSubTasksRaw}
-          placeholder='مهام فرعية (كل سطر مهمة)'
+          placeholder='كل سطر = مهمة فرعية'
           placeholderTextColor={Colors.textMuted}
           multiline
           style={[inputStyle, { height: 96, textAlign: 'right', textAlignVertical: 'top', paddingTop: 12 }]}

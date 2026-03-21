@@ -10,11 +10,13 @@ import { useHabitStore } from '@/stores/useHabitStore'
 const DAYS_AR = ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س']
 
 export function HabitCard({ habit }: { habit: Habit }) {
-  const { checkInHabit, getStreak, isCompletedToday, getWeekGrid } = useHabitStore()
+  const { checkInHabit, getStreak, isCompletedToday, getCompletedCountToday, getWeekGrid } = useHabitStore()
   const checkScale = useRef(new Animated.Value(1)).current
   const cardScale = useRef(new Animated.Value(1)).current
 
   const streak = getStreak(habit.id)
+  const targetPerDay = Math.max(1, habit.targetPerDay ?? 1)
+  const todayCount = getCompletedCountToday(habit.id)
   const done = isCompletedToday(habit.id)
   const grid = getWeekGrid(habit.id)
 
@@ -54,6 +56,10 @@ export function HabitCard({ habit }: { habit: Habit }) {
 
           <View style={{ flex: 1 }}>
             <Text style={s.name}>{habit.name}</Text>
+            <Text style={s.meta}>
+              اليوم {Math.min(todayCount, targetPerDay)}/{targetPerDay}
+              {habit.reminderTimes?.length ? ` • ${habit.reminderTimes.length} تذكير` : ''}
+            </Text>
             <View style={{ flexDirection: 'row', gap: 4, marginTop: 6 }}>
               {grid.map((isDone, i) => (
                 <View key={i} style={{
@@ -83,8 +89,8 @@ export function HabitCard({ habit }: { habit: Habit }) {
                 activeOpacity={0.8}
                 style={[s.checkBtn, done && s.checkDone]}
               >
-                <Text style={{ fontSize: 20 }}>
-                  {done ? '✅' : '⭕'}
+                <Text style={{ fontSize: done ? 20 : 13, fontFamily: done ? undefined : 'Cairo-Bold', color: done ? undefined : Colors.primary }}>
+                  {done ? '✅' : `+1`}
                 </Text>
               </TouchableOpacity>
             </Animated.View>
@@ -110,6 +116,7 @@ const s = StyleSheet.create({
   },
   row: { flexDirection: 'row', alignItems: 'center' },
   name: { fontFamily: 'Cairo-SemiBold', fontSize: 15, color: Colors.textPrimary },
+  meta: { fontFamily: 'Cairo-Regular', fontSize: 11, color: Colors.textMuted, marginTop: 3 },
   streak: { fontFamily: 'Cairo-Bold', fontSize: 11, color: Colors.primaryMid },
   checkBtn: {
     width: 46,

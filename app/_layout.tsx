@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { I18nManager, InteractionManager, View, Text, Image } from 'react-native'
+import { I18nManager, View, Text, Image } from 'react-native'
 import { Stack, router } from 'expo-router'
 import { useFonts, Cairo_400Regular, Cairo_600SemiBold, Cairo_700Bold } from '@expo-google-fonts/cairo'
 import * as SplashScreen from 'expo-splash-screen'
@@ -40,22 +40,33 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontsLoaded) {
       SplashScreen.hideAsync()
-      InteractionManager.runAfterInteractions(() => {
-        generateRecurring()
-      })
+      let idleId: number | undefined
+      let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+      if (typeof globalThis.requestIdleCallback === 'function') {
+        idleId = globalThis.requestIdleCallback(() => {
+          generateRecurring()
+        })
+      } else {
+        timeoutId = setTimeout(() => {
+          generateRecurring()
+        }, 16)
+      }
       
       const timer = setTimeout(() => {
         if (!isOnboarded) router.replace('/onboarding')
         setShowSplash(false)
       }, 2500)
       
-      return () => clearTimeout(timer)
+      return () => {
+        clearTimeout(timer)
+        if (typeof idleId === 'number' && typeof globalThis.cancelIdleCallback === 'function') {
+          globalThis.cancelIdleCallback(idleId)
+        }
+        if (timeoutId) clearTimeout(timeoutId)
+      }
     }
   }, [fontsLoaded, isOnboarded])
-
-  useEffect(() => {
-    void Notifications.requestPermissionsAsync()
-  }, [])
 
   if (!fontsLoaded) return null
 

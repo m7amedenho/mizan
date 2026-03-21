@@ -41,13 +41,17 @@ export interface Habit {
   emoji: string
   frequency: 'daily' | 'specific_days'
   days?: number[]
+  targetPerDay?: number
   reminderTime?: string
+  reminderTimes?: string[]
   notificationId?: string
+  notificationIds?: string[]
   completions: string[]
   createdAt: string
 }
 
 export type WalletType = 'cash' | 'bank' | 'ewallet'
+export type TransactionFlow = 'regular' | 'debt_new' | 'debt_payment' | 'transfer'
 export type ExpenseCategory =
   | 'food'
   | 'transport'
@@ -70,12 +74,16 @@ export interface Wallet {
 export interface Transaction {
   id: string
   type: 'expense' | 'income'
+  flow: TransactionFlow
   amount: number
   category: ExpenseCategory | IncomeCategory
   name: string
   walletId: string
+  toWalletId?: string
   date: string
   note?: string
+  debtId?: string
+  personName?: string
   location?: { latitude: number; longitude: number; placeName: string }
   createdAt: string
 }
@@ -84,6 +92,7 @@ export interface Payment {
   id: string
   amount: number
   date: string
+  transactionId?: string
 }
 
 export interface Debt {

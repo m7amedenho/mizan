@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics'
 import { Colors } from '@/constants/colors'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { useGoalStore } from '@/stores/useGoalStore'
-import { getTodayString } from '@/utils/dateHelpers'
+import { addDaysToDateKey, formatDateAr, getTodayString } from '@/utils/dateHelpers'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { inputLabel, inputStyle } from '@/constants/styles'
 
@@ -43,7 +43,7 @@ export function AddChallengeSheet({ visible, onClose }: { visible: boolean; onCl
         </View>
         <View style={{ backgroundColor: Colors.primaryPale, borderRadius: 14, padding: 14 }}>
           <Text style={{ fontFamily: 'Cairo-SemiBold', fontSize: 14, color: Colors.primary }}>
-            هتنجز التحدي في {new Date(Date.now() + days * 86400000).toLocaleDateString('ar-EG')} 🎯
+            هتنجز التحدي في {formatDateAr(addDaysToDateKey(getTodayString(), days))} 🎯
           </Text>
         </View>
 

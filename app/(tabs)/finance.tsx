@@ -13,7 +13,7 @@ import { AddWalletSheet } from '@/components/finance/AddWalletSheet'
 import { AddTransactionSheet } from '@/components/finance/AddTransactionSheet'
 import { AddDebtSheet } from '@/components/finance/AddDebtSheet'
 import { useFinanceStore } from '@/stores/useFinanceStore'
-import { formatAmountAr, getCurrentMonth } from '@/utils/dateHelpers'
+import { formatAmountAr, formatDateAr, getCurrentMonth } from '@/utils/dateHelpers'
 import { groupTransactionsByDate } from '@/utils/financialCalc'
 
 type Tab = 'wallets' | 'transactions' | 'debts' | 'budget'
@@ -116,7 +116,7 @@ export default function FinanceScreen() {
                 <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
                   {Object.entries(grouped).map(([date, txs]) => (
                     <View key={date} style={{ marginBottom: 16 }}>
-                      <Text style={s.dateHeader}>{date}</Text>
+                      <Text style={s.dateHeader}>{formatDateAr(date)}</Text>
                       {txs.map((tx) => (
                         <TransactionItem key={tx.id} transaction={tx} onDelete={() => deleteTransaction(tx.id)} />
                       ))}

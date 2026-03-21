@@ -13,6 +13,7 @@ import { AddTaskSheet } from '@/components/tasks/AddTaskSheet'
 import { AddHabitSheet } from '@/components/tasks/AddHabitSheet'
 import { useTaskStore } from '@/stores/useTaskStore'
 import { useHabitStore } from '@/stores/useHabitStore'
+import { addDaysLocal, getTodayString, toLocalDateString } from '@/utils/dateHelpers'
 
 type Tab = 'tasks' | 'habits' | 'pomodoro'
 type Filter = 'today' | 'tomorrow' | 'week' | 'all' | 'done'
@@ -34,9 +35,9 @@ export default function TasksScreen() {
   const { habits } = useHabitStore()
 
   const getFiltered = () => {
-    const today = new Date().toISOString().split('T')[0]
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0]
-    const weekEnd = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
+    const today = getTodayString()
+    const tomorrow = toLocalDateString(addDaysLocal(new Date(), 1))
+    const weekEnd = toLocalDateString(addDaysLocal(new Date(), 7))
 
     switch (filter) {
       case 'today':

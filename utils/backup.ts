@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy'
 import * as Sharing from 'expo-sharing'
 import { storage } from './storage'
+import { getTodayString } from './dateHelpers'
 
 const STORE_KEYS = [
   'app-store',
@@ -32,7 +33,7 @@ export const exportBackup = async (): Promise<boolean> => {
     }
 
     const json = JSON.stringify(data, null, 2)
-    const fileName = `mizan-backup-${new Date().toISOString().split('T')[0]}.json`
+    const fileName = `mizan-backup-${getTodayString()}.json`
     const path = `${FileSystem.documentDirectory}${fileName}`
 
     await FileSystem.writeAsStringAsync(path, json, { encoding: FileSystem.EncodingType.UTF8 })

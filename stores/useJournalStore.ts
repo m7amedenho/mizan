@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { storage } from "@/utils/storage";
 import { JournalEntry } from "@/types";
-import { generateId } from "@/utils/dateHelpers";
+import { generateId, toLocalDateString } from "@/utils/dateHelpers";
 
 interface JournalState {
   entries: JournalEntry[];
@@ -45,9 +45,7 @@ export const useJournalStore = create<JournalState>()(
         for (let i = 0; i < 365; i++) {
           const d = new Date();
           d.setDate(d.getDate() - i);
-          if (
-            get().entries.find((e) => e.date === d.toISOString().split("T")[0])
-          )
+          if (get().entries.find((e) => e.date === toLocalDateString(d)))
             streak++;
           else break;
         }

@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback } from 'react'
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, Animated, ImageBackground,
-  StatusBar, UIManager, Platform, LayoutAnimation
+  StyleSheet, Animated, ImageBackground, Pressable,
+  StatusBar, Platform
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -24,10 +24,6 @@ import { useMoodStore } from '@/stores/useMoodStore'
 import { formatAmountAr, formatDateAr, getTodayString } from '@/utils/dateHelpers'
 import { DAILY_QUOTES } from '@/constants/quotes'
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true)
-}
-
 const HEADER_BG = require('@/assets/images/header-bg.jpg')
 
 export default function HomeScreen() {
@@ -40,7 +36,7 @@ export default function HomeScreen() {
   // Stores
   const { settings } = useAppStore()
   const { tasks, getTodayTasks, toggleTask } = useTaskStore()
-  const { habits, checkInHabit, isCompletedToday, getStreak } = useHabitStore()
+  const { habits, checkInHabit, isCompletedToday, getCompletedCountToday, getStreak } = useHabitStore()
   const { getTotalBalance, getMonthlyExpenses, getMonthlyIncome } = useFinanceStore()
   const { challenges } = useGoalStore()
   const { getTodayMood, logMood } = useMoodStore()
@@ -54,7 +50,8 @@ export default function HomeScreen() {
   const balance = getTotalBalance()
   const expenses = getMonthlyExpenses(month)
   const income = getMonthlyIncome(month)
-  const todayHabits = habits.filter((h) => h.frequency === 'daily')
+  const weekday = new Date().getDay()
+  const todayHabits = habits.filter((h) => h.frequency === 'daily' || h.days?.includes(weekday))
   const doneHabits = todayHabits.filter((h) => isCompletedToday(h.id)).length
   const activeChallenge = challenges.find((c) => !c.completed)
   const maxStreak = habits.length > 0
@@ -195,11 +192,14 @@ export default function HomeScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
                   {todayHabits.map((habit) => {
                     const done = isCompletedToday(habit.id)
+                    const targetPerDay = Math.max(1, habit.targetPerDay ?? 1)
+                    const todayCount = getCompletedCountToday(habit.id)
                     const streak = getStreak(habit.id)
                     return (
                       <TouchableOpacity key={habit.id} onPress={() => { if (!done) { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); checkInHabit(habit.id); } }} activeOpacity={done ? 1 : 0.75} style={{ alignItems: 'center', gap: 6 }}>
                         <View style={[s.habitCircle, done && s.habitCircleDone]}><Text style={{ fontSize: 24 }}>{habit.emoji}</Text></View>
                         <Text style={s.habitName} numberOfLines={1}>{habit.name}</Text>
+                        <Text style={s.habitProgress}>{Math.min(todayCount, targetPerDay)}/{targetPerDay}</Text>
                         {streak > 1 && <Text style={s.habitStreak}>🔥{streak}</Text>}
                       </TouchableOpacity>
                     )
@@ -249,12 +249,19 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
+      {fabOpen && (
+        <Pressable
+          onPress={toggleFab}
+          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(5, 18, 10, 0.18)' }}
+        />
+      )}
+
       {/* ── FAB ── */}
       <View style={fabS.wrap} pointerEvents='box-none'>
         {FAB_ACTIONS.map((item, i) => {
-          const translateY = fabItems.interpolate({ inputRange: [0, 1], outputRange: [0, -(64 * (i + 1))] })
+          const translateY = fabItems.interpolate({ inputRange: [0, 1], outputRange: [0, -(56 * (i + 1))] })
           const opacity = fabItems.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 0, 1] })
-          const itemScale = fabItems.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] })
+          const itemScale = fabItems.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] })
           return (
             <Animated.View key={item.label} pointerEvents={fabOpen ? 'auto' : 'none'} style={[fabS.itemWrap, { transform: [{ translateY }, { scale: itemScale }], opacity }]}>
               <View style={fabS.itemLabel}>
@@ -314,6 +321,7 @@ const s = StyleSheet.create({
   habitCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.primaryXPale, borderWidth: 1.5, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
   habitCircleDone: { backgroundColor: Colors.primaryPale, borderColor: Colors.primaryLight },
   habitName: { fontFamily: 'Cairo-SemiBold', fontSize: 11, color: Colors.textSecondary, maxWidth: 54, textAlign: 'center' },
+  habitProgress: { fontFamily: 'Cairo-Bold', fontSize: 10, color: Colors.primaryMid },
   habitStreak: { fontFamily: 'Cairo-Bold', fontSize: 10, color: Colors.primaryMid },
   finPill: { flex: 1, borderRadius: 20, padding: 14, gap: 6 },
   finPillLabel: { fontFamily: 'Cairo-Regular', fontSize: 12, color: Colors.textSecondary },
@@ -330,14 +338,14 @@ const s = StyleSheet.create({
 })
 
 const fabS = StyleSheet.create({
-  wrap: { position: 'absolute', bottom: Platform.OS === 'ios' ? 100 : 85, left: 24, alignItems: 'center', zIndex: 999 },
+  wrap: { position: 'absolute', bottom: Platform.OS === 'ios' ? 102 : 88, left: 20, alignItems: 'flex-start', zIndex: 999 },
   mainWrap: { shadowColor: Colors.primaryMid, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 8 },
-  main: { width: 56, height: 56, borderRadius: 28, overflow: 'hidden' },
+  main: { width: 60, height: 60, borderRadius: 30, overflow: 'hidden' },
   mainGrad: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  itemWrap: { position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 12, bottom: 4 },
+  itemWrap: { position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 10, bottom: 8 },
   itemBtnWrap: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.15, shadowRadius: 6, elevation: 5 },
-  itemBtn: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden' },
+  itemBtn: { width: 46, height: 46, borderRadius: 23, overflow: 'hidden' },
   itemGrad: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  itemLabel: { backgroundColor: 'rgba(13,27,18,0.85)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  itemLabelText: { fontFamily: 'Cairo-Bold', fontSize: 13, color: '#fff' },
+  itemLabel: { backgroundColor: 'rgba(13,27,18,0.94)', minWidth: 112, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' },
+  itemLabelText: { fontFamily: 'Cairo-Bold', fontSize: 13, color: '#fff', textAlign: 'center' },
 })

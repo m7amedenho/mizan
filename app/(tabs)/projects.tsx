@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Alert,
   View,
   Text,
   TouchableOpacity,
@@ -20,7 +21,7 @@ type Filter = "active" | "idea" | "completed";
 export default function ProjectsScreen() {
   const [filter, setFilter] = useState<Filter>("active");
   const [showAdd, setShowAdd] = useState(false);
-  const { projects } = useProjectStore();
+  const { projects, deleteProject } = useProjectStore();
 
   const filtered = projects.filter((p) => p.status === filter);
 
@@ -35,7 +36,16 @@ export default function ProjectsScreen() {
         rightAction={{ icon: "add-outline", onPress: () => setShowAdd(true) }}
       />
 
-      <View style={{ flex: 1, backgroundColor: Colors.background, borderTopLeftRadius: 36, borderTopRightRadius: 36, marginTop: -24, paddingTop: 10 }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: Colors.background,
+          borderTopLeftRadius: 36,
+          borderTopRightRadius: 36,
+          marginTop: -24,
+          paddingTop: 10,
+        }}
+      >
         <View style={s.tabRow}>
           {(
             [
@@ -75,9 +85,25 @@ export default function ProjectsScreen() {
             contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 120 }}
             showsVerticalScrollIndicator={false}
           >
-            {filtered.map((p, i) => (
-              <AnimatedCard key={p.id} delay={Math.min(i * 70, 350)}>
-                <ProjectCard project={p} />
+            {filtered.map((project, i) => (
+              <AnimatedCard key={project.id} delay={Math.min(i * 70, 350)}>
+                <ProjectCard
+                  project={project}
+                  onDelete={() => {
+                    Alert.alert(
+                      "حذف المشروع",
+                      `هل تريد حذف "${project.title}"؟`,
+                      [
+                        { text: "إلغاء", style: "cancel" },
+                        {
+                          text: "حذف",
+                          style: "destructive",
+                          onPress: () => deleteProject(project.id),
+                        },
+                      ],
+                    );
+                  }}
+                />
               </AnimatedCard>
             ))}
           </ScrollView>
@@ -102,7 +128,14 @@ const s = StyleSheet.create({
     borderColor: Colors.borderLight,
   },
   tab: { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: "center" },
-  tabActive: { backgroundColor: Colors.primary, shadowColor: Colors.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 3 },
+  tabActive: {
+    backgroundColor: Colors.primary,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
   tabText: {
     fontFamily: "Cairo-SemiBold",
     fontSize: 13,

@@ -16,7 +16,13 @@ const STATUS_COLORS = {
 };
 const STATUS_LABELS = { idea: "فكرة", active: "شغال", completed: "مكتمل" };
 
-export function ProjectCard({ project }: { project: Project }) {
+export function ProjectCard({
+  project,
+  onDelete,
+}: {
+  project: Project;
+  onDelete?: () => void;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [newStep, setNewStep] = useState("");
   const {
@@ -101,13 +107,42 @@ export function ProjectCard({ project }: { project: Project }) {
             )}
           </View>
         </View>
-        <TouchableOpacity onPress={() => setExpanded(!expanded)}>
-          <Ionicons
-            name={expanded ? "chevron-up" : "chevron-down"}
-            size={20}
-            color={Colors.textMuted}
-          />
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          {onDelete ? (
+            <TouchableOpacity
+              onPress={onDelete}
+              hitSlop={10}
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 17,
+                backgroundColor: Colors.dangerLight,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons name="trash-outline" size={17} color={Colors.danger} />
+            </TouchableOpacity>
+          ) : null}
+          <TouchableOpacity
+            onPress={() => setExpanded(!expanded)}
+            hitSlop={10}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 17,
+              backgroundColor: Colors.primaryXPale,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons
+              name={expanded ? "chevron-up" : "chevron-down"}
+              size={20}
+              color={Colors.textMuted}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {totalSteps > 0 && (

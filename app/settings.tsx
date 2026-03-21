@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -19,12 +19,29 @@ import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { useAppStore } from "@/stores/useAppStore";
 import { exportBackup } from "@/utils/backup";
 import { BADGES_CONFIG } from "@/constants/badges";
-import { configureNotifications } from "@/utils/notifications";
+import {
+  configureNotifications,
+  getNotificationPermission,
+  hasGrantedNotificationPermission,
+} from "@/utils/notifications";
 import { Linking } from "react-native";
 export default function SettingsScreen() {
   const { settings, updateSettings, badges } = useAppStore();
   const [name, setName] = useState(settings.userName);
   const [backingUp, setBackingUp] = useState(false);
+
+  useEffect(() => {
+    const syncPermission = async () => {
+      const permission = await getNotificationPermission();
+      const granted = hasGrantedNotificationPermission(permission);
+
+      if (settings.notificationsEnabled !== granted) {
+        updateSettings({ notificationsEnabled: granted });
+      }
+    };
+
+    void syncPermission();
+  }, [settings.notificationsEnabled, updateSettings]);
 
   const handleSaveName = () => {
     if (!name.trim()) return;
@@ -45,9 +62,21 @@ export default function SettingsScreen() {
       updateSettings({ notificationsEnabled: false });
       return;
     }
-    const ok = await configureNotifications();
+    const ok = await configureNotifications(true);
     if (!ok) {
-      Alert.alert("الإشعارات", "لازم تسمح بالإشعارات من إعدادات الجهاز.");
+      Alert.alert(
+        "الإشعارات",
+        "لازم تسمح بالإشعارات من إعدادات الجهاز عشان التذكيرات تشتغل.",
+        [
+          { text: "لاحقًا", style: "cancel" },
+          {
+            text: "افتح الإعدادات",
+            onPress: () => {
+              void Linking.openSettings();
+            },
+          },
+        ],
+      );
       updateSettings({ notificationsEnabled: false });
       return;
     }
@@ -83,7 +112,7 @@ export default function SettingsScreen() {
     >
       <GradientHeader
         title="الإعدادات ⚙️"
-        leftAction={{ icon: "arrow-back", onPress: () => router.back() }}
+        leftAction={{ icon: "arrow-forward", onPress: () => router.back() }}
       />
 
       <ScrollView
@@ -339,7 +368,7 @@ export default function SettingsScreen() {
 
         <View style={[card, { alignItems: "center", gap: 6 }]}>
           <Image
-            source={require("@/assets/splash-icon.png")}
+            source={require("@/assets/icon.png")}
             style={{ width: 70, height: 70, borderRadius: 14 }}
           />
           {/* <Text
@@ -415,7 +444,7 @@ export default function SettingsScreen() {
                   color: Colors.textPrimary,
                 }}
               >
-                Mohamed Hamid
+                Mohamed Hamed
               </Text>
               <Text
                 style={{

@@ -1,4 +1,5 @@
-import { Transaction, Debt } from '@/types'
+import { Debt, Transaction } from '@/types'
+import { parseDateString } from '@/utils/dateHelpers'
 
 export const calcDebtRemaining = (debt: Debt): number => {
   const paid = debt.payments.reduce((sum, p) => sum + p.amount, 0)
@@ -6,6 +7,7 @@ export const calcDebtRemaining = (debt: Debt): number => {
 }
 
 export const calcDebtPercent = (debt: Debt): number => {
+  if (debt.totalAmount <= 0) return 100
   const paid = debt.payments.reduce((sum, p) => sum + p.amount, 0)
   return Math.min((paid / debt.totalAmount) * 100, 100)
 }
@@ -13,9 +15,9 @@ export const calcDebtPercent = (debt: Debt): number => {
 export const groupTransactionsByDate = (transactions: Transaction[]) => {
   const groups: Record<string, Transaction[]> = {}
   transactions
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .sort((a, b) => parseDateString(b.date).getTime() - parseDateString(a.date).getTime())
     .forEach((t) => {
-      const key = t.date.split('T')[0]
+      const key = t.date
       if (!groups[key]) groups[key] = []
       groups[key].push(t)
     })
