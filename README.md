@@ -212,7 +212,7 @@ Full Stack & Mobile Developer
 
 ## 🌐 الموقع الرسمي
 
-🚧 Landing page coming soon at: [your-domain.com](#)
+🚧 https://mizan-eg.vercel.app/
 
 If you find this helpful, please ⭐ star the repository!
 
