@@ -340,9 +340,9 @@ export default function SettingsScreen() {
         <View style={[card, { alignItems: "center", gap: 6 }]}>
           <Image
             source={require("@/assets/splash-icon.png")}
-            style={{ width: 56, height: 56, borderRadius: 14 }}
+            style={{ width: 70, height: 70, borderRadius: 14 }}
           />
-          <Text
+          {/* <Text
             style={{
               fontFamily: "Cairo-Bold",
               fontSize: 16,
@@ -350,7 +350,7 @@ export default function SettingsScreen() {
             }}
           >
             ميزان
-          </Text>
+          </Text> */}
           <Text
             style={{
               fontFamily: "Cairo-Regular",

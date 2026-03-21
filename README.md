@@ -32,10 +32,8 @@ An Arabic-first productivity and finance companion for your daily life
 ## 📱 معاينة التطبيق
 
 | Dashboard | Tasks | Finance |
-|-----------|-------|---------|
-| <img src="https://placehold.co/240x500/F6F7FB/1D2939?text=Dashboard" alt="Dashboard mockup" width="220" /> | <img src="https://placehold.co/240x500/FFF7ED/9A3412?text=Tasks" alt="Tasks mockup" width="220" /> | <img src="https://placehold.co/240x500/ECFDF3/065F46?text=Finance" alt="Finance mockup" width="220" /> |
-
-Screenshots coming soon — Landing page: [your-domain.com](#)
+|:---:|:---:|:---:|
+| <img src="./assets/images/dashboard.jpg" alt="Dashboard" width="220" /> | <img src="./assets/images/Tasks.jpg" alt="Tasks" width="220" /> | <img src="./assets/images/Money.jpg" alt="Finance" width="220" /> |
 
 ---
 

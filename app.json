@@ -33,10 +33,9 @@
       "package": "com.mizan.app",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
+        "foregroundImage": "./assets/icon.png",
         "monochromeImage": "./assets/android-icon-monochrome.png",
-        "backgroundColor": "#38BDF8"
+        "backgroundColor": "#FFFFFF"
       },
       "permissions": [
         "ACCESS_FINE_LOCATION",
