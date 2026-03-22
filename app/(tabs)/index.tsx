@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef } from 'react'
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, Animated, ImageBackground, Pressable,
@@ -65,10 +65,8 @@ export default function HomeScreen() {
   const fabRotate = useRef(new Animated.Value(0)).current
   const fabItems = useRef(new Animated.Value(0)).current
 
-  const toggleFab = () => {
-    const opening = !fabOpen
-    setFabOpen(opening)
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+  const animateFab = (opening: boolean, afterClose?: () => void) => {
+    if (opening) setFabOpen(true)
     Animated.parallel([
       Animated.spring(fabRotate, {
         toValue: opening ? 1 : 0,
@@ -80,7 +78,32 @@ export default function HomeScreen() {
         useNativeDriver: true,
         speed: 20, bounciness: 10,
       }),
-    ]).start(() => { if (!opening) setFabOpen(false) })
+    ]).start(() => {
+      if (!opening) {
+        setFabOpen(false)
+        afterClose?.()
+      }
+    })
+  }
+
+  const openFab = () => {
+    if (fabOpen) return
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    animateFab(true)
+  }
+
+  const closeFab = (afterClose?: () => void) => {
+    if (!fabOpen) {
+      afterClose?.()
+      return
+    }
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    animateFab(false, afterClose)
+  }
+
+  const toggleFab = () => {
+    if (fabOpen) closeFab()
+    else openFab()
   }
 
   const fabRotation = fabRotate.interpolate({
@@ -89,8 +112,8 @@ export default function HomeScreen() {
   })
 
   const FAB_ACTIONS = [
-    { label: 'مهمة جديدة', icon: 'add-circle-outline', action: () => { toggleFab(); setShowAddTask(true) } },
-    { label: 'مصروف جديد', icon: 'cash-outline', action: () => { toggleFab(); setShowAddTx(true) } },
+    { label: 'مهمة جديدة', icon: 'add-circle-outline', action: () => closeFab(() => setShowAddTask(true)) },
+    { label: 'مصروف جديد', icon: 'cash-outline', action: () => closeFab(() => setShowAddTx(true)) },
   ]
 
   void tasks
@@ -251,8 +274,8 @@ export default function HomeScreen() {
 
       {fabOpen && (
         <Pressable
-          onPress={toggleFab}
-          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(5, 18, 10, 0.18)' }}
+          onPress={() => closeFab()}
+          style={fabS.backdrop}
         />
       )}
 
@@ -264,16 +287,21 @@ export default function HomeScreen() {
           const itemScale = fabItems.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] })
           return (
             <Animated.View key={item.label} pointerEvents={fabOpen ? 'auto' : 'none'} style={[fabS.itemWrap, { transform: [{ translateY }, { scale: itemScale }], opacity }]}>
-              <View style={fabS.itemLabel}>
-                <Text style={fabS.itemLabelText}>{item.label}</Text>
-              </View>
-              <View style={fabS.itemBtnWrap}>
-                <TouchableOpacity onPress={item.action} activeOpacity={0.85} style={fabS.itemBtn}>
-                  <LinearGradient colors={['#52B788', '#2D6A4F']} style={fabS.itemGrad}>
+              <TouchableOpacity
+                onPress={item.action}
+                activeOpacity={0.85}
+                style={fabS.itemTouch}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <View style={fabS.itemLabel}>
+                  <Text style={fabS.itemLabelText}>{item.label}</Text>
+                </View>
+                <View style={fabS.itemBtnWrap}>
+                  <LinearGradient colors={['#52B788', '#2D6A4F']} style={fabS.itemBtn}>
                     <Ionicons name={item.icon as any} size={22} color='#fff' />
                   </LinearGradient>
-                </TouchableOpacity>
-              </View>
+                </View>
+              </TouchableOpacity>
             </Animated.View>
           )
         })}
@@ -338,14 +366,31 @@ const s = StyleSheet.create({
 })
 
 const fabS = StyleSheet.create({
-  wrap: { position: 'absolute', bottom: Platform.OS === 'ios' ? 102 : 88, left: 20, alignItems: 'flex-start', zIndex: 999 },
-  mainWrap: { shadowColor: Colors.primaryMid, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 8 },
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'rgba(5, 18, 10, 0.18)',
+    zIndex: 900,
+    elevation: 1,
+  },
+  wrap: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 102 : 88,
+    left: 20,
+    alignItems: 'flex-start',
+    zIndex: 1001,
+    elevation: 30,
+  },
+  mainWrap: { shadowColor: Colors.primaryMid, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 8, zIndex: 3 },
   main: { width: 60, height: 60, borderRadius: 30, overflow: 'hidden' },
   mainGrad: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  itemWrap: { position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 10, bottom: 8 },
+  itemWrap: { position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 10, bottom: 8, zIndex: 2, elevation: 10 },
+  itemTouch: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 2, paddingHorizontal: 2 },
   itemBtnWrap: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.15, shadowRadius: 6, elevation: 5 },
-  itemBtn: { width: 46, height: 46, borderRadius: 23, overflow: 'hidden' },
-  itemGrad: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  itemBtn: { width: 46, height: 46, borderRadius: 23, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   itemLabel: { backgroundColor: 'rgba(13,27,18,0.94)', minWidth: 112, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' },
   itemLabelText: { fontFamily: 'Cairo-Bold', fontSize: 13, color: '#fff', textAlign: 'center' },
 })
