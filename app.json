@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mizan",
     "slug": "mizan-app",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
@@ -12,26 +12,23 @@
     },
     "scheme": "mizan",
     "userInterfaceStyle": "light",
-    "platforms": [
-      "ios",
-      "android"
-    ],
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "platforms": ["ios", "android"],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.mizan.app",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "عشان نسجل موقع المصروف",
         "NSLocationAlwaysUsageDescription": "عشان التذكيرات بناءً على موقعك",
-        "NSCalendarsUsageDescription": "عشان نضيف مهامك للتقويم"
+        "NSCalendarsUsageDescription": "عشان نضيف مهامك للتقويم",
+        "NSContactsUsageDescription": "لربط الديون بجهات الاتصال",
+        "NSFaceIDUsageDescription": "لحماية التطبيق بالبصمة"
       }
     },
     "android": {
       "package": "com.mizan.app",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "monochromeImage": "./assets/android-icon-monochrome.png",
@@ -44,12 +41,8 @@
         "VIBRATE",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION",
-        "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.READ_CONTACTS",
+        "android.permission.USE_BIOMETRIC"
       ]
     },
     "web": {
@@ -58,19 +51,21 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      [
-        "expo-notifications",
-        {
-          "color": "#38BDF8"
-        }
-      ],
+      ["expo-notifications", { "color": "#38BDF8" }],
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "ميزان محتاج موقعك للتذكيرات الذكية"
+          "locationAlwaysAndWhenInUsePermission": "Mizan يحتاج موقعك للتذكيرات الذكية"
         }
       ],
-      "expo-sharing"
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Mizan يحتاج إذن جهات الاتصال لربط الديون"
+        }
+      ],
+      "expo-sharing",
+      "expo-document-picker"
     ],
     "experiments": {
       "typedRoutes": true

@@ -19,6 +19,10 @@ const defaultSettings: AppSettings = {
   pomodoroLongBreak: 15,
   balanceHidden: false,
   notificationsEnabled: true,
+  appLockEnabled: false,
+  biometricEnabled: false,
+  autoSaveSalaryEnabled: true,
+  autoSaveSalaryRate: 15,
 }
 
 export const useAppStore = create<AppState>()(
@@ -36,6 +40,21 @@ export const useAppStore = create<AppState>()(
       },
       hasBadge: (type) => get().badges.some((b) => b.type === type),
     }),
-    { name: 'app-store', storage: createJSONStorage(() => storage) },
+    {
+      name: 'app-store',
+      storage: createJSONStorage(() => storage),
+      merge: (persistedState, currentState) => {
+        const incoming = (persistedState as Partial<AppState>) ?? {}
+        return {
+          ...currentState,
+          ...incoming,
+          settings: {
+            ...defaultSettings,
+            ...(incoming.settings ?? {}),
+          },
+          badges: incoming.badges ?? currentState.badges,
+        }
+      },
+    },
   ),
 )

@@ -1,137 +1,176 @@
-import { useMemo, useState } from 'react'
-import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
-import * as Haptics from 'expo-haptics'
-import { Ionicons } from '@expo/vector-icons'
-import { Colors } from '@/constants/colors'
-import { PrimaryButton } from '@/components/ui/PrimaryButton'
-import { useFinanceStore } from '@/stores/useFinanceStore'
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/constants/categories'
-import { formatAmountAr, getTodayString } from '@/utils/dateHelpers'
-import { getCurrentLocation } from '@/utils/geofencing'
-import { ExpenseCategory, IncomeCategory, TransactionFlow } from '@/types'
-import { BottomSheet } from '@/components/ui/BottomSheet'
-import { inputLabel, inputStyle } from '@/constants/styles'
-import { calcDebtRemaining } from '@/utils/financialCalc'
+import { useMemo, useState } from "react";
+import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import * as Haptics from "expo-haptics";
+import { Ionicons } from "@expo/vector-icons";
+import { Colors } from "@/constants/colors";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import { useFinanceStore } from "@/stores/useFinanceStore";
+import { useAppStore } from "@/stores/useAppStore";
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "@/constants/categories";
+import { formatAmountAr, getTodayString } from "@/utils/dateHelpers";
+import { getCurrentLocation } from "@/utils/geofencing";
+import { ExpenseCategory, IncomeCategory, TransactionFlow } from "@/types";
+import { BottomSheet } from "@/components/ui/BottomSheet";
+import { inputLabel, inputStyle } from "@/constants/styles";
+import { calcDebtRemaining } from "@/utils/financialCalc";
 
-type EntryType = 'expense' | 'income' | 'transfer'
+type EntryType = "expense" | "income" | "transfer";
+type WalletImpactMode = "affect_wallet" | "record_only";
 
-const FLOW_LABELS: Record<'expense' | 'income', { key: Exclude<TransactionFlow, 'transfer'>; label: string }[]> = {
+const FLOW_LABELS: Record<
+  "expense" | "income",
+  { key: Exclude<TransactionFlow, "transfer">; label: string }[]
+> = {
   expense: [
-    { key: 'regular', label: 'عادي' },
-    { key: 'debt_new', label: 'سلفة لشخص' },
-    { key: 'debt_payment', label: 'سداد دين عليك' },
+    { key: "regular", label: "عادي" },
+    { key: "debt_new", label: "سلفة لشخص" },
+    { key: "debt_payment", label: "سداد دين عليك" },
   ],
   income: [
-    { key: 'regular', label: 'عادي' },
-    { key: 'debt_payment', label: 'تحصيل دين ليك' },
-    { key: 'debt_new', label: 'استلاف من شخص' },
+    { key: "regular", label: "عادي" },
+    { key: "debt_payment", label: "تحصيل دين ليك" },
+    { key: "debt_new", label: "استلاف من شخص" },
   ],
-}
+};
 
-export function AddTransactionSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const [entryType, setEntryType] = useState<EntryType>('expense')
-  const [flow, setFlow] = useState<Exclude<TransactionFlow, 'transfer'>>('regular')
-  const [amount, setAmount] = useState('')
-  const [name, setName] = useState('')
-  const [note, setNote] = useState('')
-  const [category, setCategory] = useState<ExpenseCategory | IncomeCategory>('food')
-  const [walletId, setWalletId] = useState('')
-  const [toWalletId, setToWalletId] = useState('')
-  const [personName, setPersonName] = useState('')
-  const [selectedDebtId, setSelectedDebtId] = useState('')
-  const [location, setLocation] = useState<{ latitude: number; longitude: number; placeName: string } | null>(null)
-  const [loadingLoc, setLoadingLoc] = useState(false)
+export function AddTransactionSheet({
+  visible,
+  onClose,
+}: {
+  visible: boolean;
+  onClose: () => void;
+}) {
+  const [entryType, setEntryType] = useState<EntryType>("expense");
+  const [flow, setFlow] = useState<Exclude<TransactionFlow, "transfer">>("regular");
+  const [walletImpactMode, setWalletImpactMode] = useState<WalletImpactMode>("affect_wallet");
+  const [amount, setAmount] = useState("");
+  const [name, setName] = useState("");
+  const [note, setNote] = useState("");
+  const [category, setCategory] = useState<ExpenseCategory | IncomeCategory>("food");
+  const [walletId, setWalletId] = useState("");
+  const [toWalletId, setToWalletId] = useState("");
+  const [personName, setPersonName] = useState("");
+  const [selectedDebtId, setSelectedDebtId] = useState("");
+  const [location, setLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    placeName: string;
+  } | null>(null);
+  const [loadingLoc, setLoadingLoc] = useState(false);
 
-  const { addTransaction, addTransfer, wallets, debts } = useFinanceStore()
+  const { addTransaction, addTransfer, wallets, debts, getWalletAvailableBalance } = useFinanceStore();
+  const { settings } = useAppStore();
 
-  const transactionType = entryType === 'transfer' ? 'expense' : entryType
-  const categories = transactionType === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES
+  const transactionType = entryType === "transfer" ? "expense" : entryType;
+  const categories = transactionType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
   const relevantDirection = useMemo(() => {
-    if (entryType === 'expense' && flow === 'debt_new') return 'owed_to_me'
-    if (entryType === 'expense' && flow === 'debt_payment') return 'i_owe'
-    if (entryType === 'income' && flow === 'debt_new') return 'i_owe'
-    if (entryType === 'income' && flow === 'debt_payment') return 'owed_to_me'
-    return null
-  }, [entryType, flow])
+    if (entryType === "expense" && flow === "debt_new") return "owed_to_me";
+    if (entryType === "expense" && flow === "debt_payment") return "i_owe";
+    if (entryType === "income" && flow === "debt_new") return "i_owe";
+    if (entryType === "income" && flow === "debt_payment") return "owed_to_me";
+    return null;
+  }, [entryType, flow]);
 
-  const relevantDebts = useMemo(() => (
-    relevantDirection
-      ? debts.filter((debt) => !debt.settled && debt.direction === relevantDirection)
-      : []
-  ), [debts, relevantDirection])
+  const relevantDebts = useMemo(
+    () =>
+      relevantDirection
+        ? debts.filter((debt) => !debt.settled && debt.direction === relevantDirection)
+        : [],
+    [debts, relevantDirection],
+  );
 
-  const selectedDebt = relevantDebts.find((debt) => debt.id === selectedDebtId)
+  const selectedDebt = relevantDebts.find((debt) => debt.id === selectedDebtId);
+
+  const shouldRequireWallet = entryType === "transfer" || walletImpactMode === "affect_wallet";
+  const parsedAmount = Number.parseFloat(amount || "0");
+  const projectedAutoSave =
+    entryType === "income" &&
+    flow === "regular" &&
+    category === "salary" &&
+    settings.autoSaveSalaryEnabled &&
+    walletImpactMode === "affect_wallet" &&
+    parsedAmount > 0
+      ? Number(((parsedAmount * settings.autoSaveSalaryRate) / 100).toFixed(2))
+      : 0;
 
   const setMode = (nextType: EntryType) => {
-    setEntryType(nextType)
-    setAmount('')
-    setName('')
-    setNote('')
-    setPersonName('')
-    setSelectedDebtId('')
-    setLocation(null)
-
-    if (nextType === 'expense') {
-      setFlow('regular')
-      setCategory('food')
-      setToWalletId('')
-      return
+    setEntryType(nextType);
+    setAmount("");
+    setName("");
+    setNote("");
+    setPersonName("");
+    setSelectedDebtId("");
+    setLocation(null);
+    setWalletImpactMode("affect_wallet");
+    if (nextType === "expense") {
+      setFlow("regular");
+      setCategory("food");
+      setToWalletId("");
+      return;
     }
-
-    if (nextType === 'income') {
-      setFlow('regular')
-      setCategory('salary')
-      setToWalletId('')
-      return
+    if (nextType === "income") {
+      setFlow("regular");
+      setCategory("salary");
+      setToWalletId("");
+      return;
     }
-
-    setToWalletId('')
-  }
+    setToWalletId("");
+  };
 
   const handleSave = () => {
-    const value = parseFloat(amount)
-    if (!value || value <= 0 || !walletId) return
+    const value = Number.parseFloat(amount);
+    if (!value || value <= 0) return;
 
-    if (entryType === 'transfer') {
-      if (!toWalletId || toWalletId === walletId) return
-      const sourceWallet = wallets.find((wallet) => wallet.id === walletId)
-      if (!sourceWallet) return
-      if (sourceWallet.balance < value) {
-        Alert.alert(
-          'الرصيد غير كافٍ',
-          `المتاح في ${sourceWallet.name} هو ${formatAmountAr(sourceWallet.balance)} فقط.`,
-        )
-        return
-      }
+    if (entryType === "transfer") {
+      if (!walletId || !toWalletId || toWalletId === walletId) return;
       const transferResult = addTransfer({
         amount: value,
         fromWalletId: walletId,
         toWalletId,
         date: getTodayString(),
-        name: name.trim() || `تحويل إلى ${wallets.find((wallet) => wallet.id === toWalletId)?.name ?? 'محفظة'}`,
+        name:
+          name.trim() ||
+          `تحويل إلى ${wallets.find((wallet) => wallet.id === toWalletId)?.name ?? "محفظة"}`,
         note: note.trim() || undefined,
-      })
+      });
       if (!transferResult.ok) {
-        Alert.alert('تعذر التحويل', transferResult.error || 'حدثت مشكلة أثناء التحويل.')
-        return
+        Alert.alert("تعذر التحويل", transferResult.error || "حدثت مشكلة أثناء التحويل.");
+        return;
       }
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-      resetForm()
-      onClose()
-      return
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      resetForm();
+      onClose();
+      return;
     }
 
-    if (flow === 'debt_new' && !personName.trim()) return
-    if (flow === 'debt_payment' && !selectedDebtId) return
+    if (flow === "debt_new" && !personName.trim()) return;
+    if (flow === "debt_payment" && !selectedDebtId) return;
+    if (shouldRequireWallet && !walletId) return;
 
-    const defaultName = flow === 'debt_payment'
-      ? (selectedDebt ? `تسوية مع ${selectedDebt.personName}` : '')
-      : flow === 'debt_new'
-        ? (personName.trim() ? `معاملة دين - ${personName.trim()}` : '')
-        : (categories.find((item) => item.key === category)?.label ?? '')
+    if (
+      shouldRequireWallet &&
+      transactionType === "expense" &&
+      getWalletAvailableBalance(walletId) < value
+    ) {
+      Alert.alert(
+        "الرصيد المتاح غير كافٍ",
+        "المصروف أكبر من المتاح بعد خصم مبلغ التحويش المحجوز.",
+      );
+      return;
+    }
 
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    addTransaction({
+    const defaultName =
+      flow === "debt_payment"
+        ? selectedDebt
+          ? `تسوية مع ${selectedDebt.personName}`
+          : ""
+        : flow === "debt_new"
+          ? personName.trim()
+            ? `معاملة دين - ${personName.trim()}`
+            : ""
+          : categories.find((item) => item.key === category)?.label ?? "";
+
+    const result = addTransaction({
       type: transactionType,
       flow,
       amount: value,
@@ -140,37 +179,55 @@ export function AddTransactionSheet({ visible, onClose }: { visible: boolean; on
       walletId,
       date: getTodayString(),
       note: note.trim() || undefined,
-      debtId: flow === 'debt_payment' ? selectedDebtId : undefined,
-      personName: flow === 'debt_new' ? personName.trim() : selectedDebt?.personName,
+      debtId: flow === "debt_payment" ? selectedDebtId : undefined,
+      personName: flow === "debt_new" ? personName.trim() : selectedDebt?.personName,
       location: location ?? undefined,
-    })
-    resetForm()
-    onClose()
-  }
+      walletImpactMode,
+    });
+
+    if (!result.ok) {
+      Alert.alert("تعذر الحفظ", result.error || "حدثت مشكلة أثناء حفظ العملية.");
+      return;
+    }
+
+    if (projectedAutoSave > 0) {
+      Alert.alert(
+        "تم حفظ العملية",
+        `تم حجز ${formatAmountAr(projectedAutoSave)} كتوفير تلقائي من الراتب.`,
+      );
+    }
+
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    resetForm();
+    onClose();
+  };
 
   const resetForm = () => {
-    setAmount('')
-    setName('')
-    setNote('')
-    setPersonName('')
-    setSelectedDebtId('')
-    setFlow('regular')
-    setCategory('food')
-    setWalletId('')
-    setToWalletId('')
-    setLocation(null)
-    setEntryType('expense')
-  }
+    setAmount("");
+    setName("");
+    setNote("");
+    setPersonName("");
+    setSelectedDebtId("");
+    setFlow("regular");
+    setCategory("food");
+    setWalletId("");
+    setToWalletId("");
+    setLocation(null);
+    setEntryType("expense");
+    setWalletImpactMode("affect_wallet");
+  };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} title='عملية مالية جديدة' snapPoints={['82%', '97%']}>
+    <BottomSheet visible={visible} onClose={onClose} title="عملية مالية جديدة" snapPoints={["84%", "98%"]}>
       <View style={{ gap: 14 }}>
-        <View style={{ flexDirection: 'row', backgroundColor: Colors.primaryPale, borderRadius: 14, padding: 4 }}>
-          {([
-            ['expense', '🔴 مصروف'],
-            ['income', '🟢 دخل'],
-            ['transfer', '🔁 تحويل'],
-          ] as const).map(([key, label]) => (
+        <View style={{ flexDirection: "row", backgroundColor: Colors.primaryPale, borderRadius: 14, padding: 4 }}>
+          {(
+            [
+              ["expense", "🔴 مصروف"],
+              ["income", "🟢 دخل"],
+              ["transfer", "🔁 تحويل"],
+            ] as const
+          ).map(([key, label]) => (
             <TouchableOpacity
               key={key}
               onPress={() => setMode(key)}
@@ -178,62 +235,116 @@ export function AddTransactionSheet({ visible, onClose }: { visible: boolean; on
                 flex: 1,
                 paddingVertical: 10,
                 borderRadius: 10,
-                backgroundColor: entryType === key ? Colors.surface : 'transparent',
-                alignItems: 'center',
+                backgroundColor: entryType === key ? Colors.surface : "transparent",
+                alignItems: "center",
               }}
             >
-              <Text style={{ fontFamily: 'Cairo-SemiBold', fontSize: 13, color: entryType === key ? Colors.primary : Colors.textSecondary }}>
+              <Text
+                style={{
+                  fontFamily: "Cairo-SemiBold",
+                  fontSize: 13,
+                  color: entryType === key ? Colors.primary : Colors.textSecondary,
+                }}
+              >
                 {label}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {entryType !== 'transfer' ? (
-          <View>
-            <Text style={inputLabel}>نوع العملية</Text>
-            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-              {FLOW_LABELS[entryType].map((item) => (
-                <TouchableOpacity
-                  key={item.key}
-                  onPress={() => {
-                    setFlow(item.key)
-                    setPersonName('')
-                    setSelectedDebtId('')
-                  }}
-                  style={{
-                    borderRadius: 20,
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    borderWidth: 1,
-                    borderColor: flow === item.key ? Colors.primary : Colors.border,
-                    backgroundColor: flow === item.key ? Colors.primaryPale : Colors.surface,
-                  }}
-                >
-                  <Text style={{ fontFamily: 'Cairo-SemiBold', fontSize: 12, color: flow === item.key ? Colors.primary : Colors.textSecondary }}>
-                    {item.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+        {entryType !== "transfer" && (
+          <>
+            <View>
+              <Text style={inputLabel}>نوع العملية</Text>
+              <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+                {FLOW_LABELS[entryType].map((item) => (
+                  <TouchableOpacity
+                    key={item.key}
+                    onPress={() => {
+                      setFlow(item.key);
+                      setPersonName("");
+                      setSelectedDebtId("");
+                    }}
+                    style={{
+                      borderRadius: 20,
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderWidth: 1,
+                      borderColor: flow === item.key ? Colors.primary : Colors.border,
+                      backgroundColor: flow === item.key ? Colors.primaryPale : Colors.surface,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: "Cairo-SemiBold",
+                        fontSize: 12,
+                        color: flow === item.key ? Colors.primary : Colors.textSecondary,
+                      }}
+                    >
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-          </View>
-        ) : null}
+            <View>
+              <Text style={inputLabel}>تأثيرها على الرصيد</Text>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {(
+                  [
+                    ["affect_wallet", "حركة مالية"],
+                    ["record_only", "تسجيل فقط"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <TouchableOpacity
+                    key={key}
+                    onPress={() => setWalletImpactMode(key)}
+                    style={{
+                      flex: 1,
+                      borderRadius: 12,
+                      paddingVertical: 10,
+                      borderWidth: 1,
+                      borderColor: walletImpactMode === key ? Colors.primary : Colors.border,
+                      backgroundColor: walletImpactMode === key ? Colors.primaryPale : Colors.surface,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: "Cairo-SemiBold",
+                        fontSize: 12,
+                        color: walletImpactMode === key ? Colors.primary : Colors.textSecondary,
+                      }}
+                    >
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </>
+        )}
 
         <View>
           <Text style={inputLabel}>المبلغ *</Text>
           <TextInput
             value={amount}
             onChangeText={setAmount}
-            placeholder='0'
-            keyboardType='numeric'
-            style={[inputStyle, { fontSize: 24, height: 60, textAlign: 'center', fontFamily: 'Cairo-Bold' }]}
+            placeholder="0"
+            keyboardType="numeric"
+            style={[inputStyle, { fontSize: 24, height: 60, textAlign: "center", fontFamily: "Cairo-Bold" }]}
           />
+          {projectedAutoSave > 0 && (
+            <Text style={{ fontFamily: "Cairo-Regular", fontSize: 12, color: Colors.primary, marginTop: 6 }}>
+              سيتم حجز {formatAmountAr(projectedAutoSave)} كتوفير تلقائي ({settings.autoSaveSalaryRate}%)
+            </Text>
+          )}
         </View>
 
-        {entryType !== 'transfer' ? (
+        {entryType !== "transfer" && (
           <View>
             <Text style={inputLabel}>التصنيف</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {categories.map((item) => (
                 <TouchableOpacity
                   key={item.key}
@@ -245,22 +356,28 @@ export function AddTransactionSheet({ visible, onClose }: { visible: boolean; on
                     backgroundColor: category === item.key ? Colors.primaryPale : Colors.surface,
                     borderWidth: 1,
                     borderColor: category === item.key ? Colors.primary : Colors.border,
-                    flexDirection: 'row',
-                    alignItems: 'center',
+                    flexDirection: "row",
+                    alignItems: "center",
                     gap: 4,
                   }}
                 >
                   <Text style={{ fontSize: 14 }}>{item.emoji}</Text>
-                  <Text style={{ fontFamily: 'Cairo-SemiBold', fontSize: 12, color: category === item.key ? Colors.primary : Colors.textSecondary }}>
+                  <Text
+                    style={{
+                      fontFamily: "Cairo-SemiBold",
+                      fontSize: 12,
+                      color: category === item.key ? Colors.primary : Colors.textSecondary,
+                    }}
+                  >
                     {item.label}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
-        ) : null}
+        )}
 
-        {flow === 'debt_new' && entryType !== 'transfer' ? (
+        {flow === "debt_new" && entryType !== "transfer" && (
           <View>
             <Text style={inputLabel}>الشخص</Text>
             {relevantDebts.length > 0 ? (
@@ -278,7 +395,7 @@ export function AddTransactionSheet({ visible, onClose }: { visible: boolean; on
                       backgroundColor: personName === debt.personName ? Colors.primaryPale : Colors.surface,
                     }}
                   >
-                    <Text style={{ fontFamily: 'Cairo-SemiBold', fontSize: 12, color: Colors.textPrimary }}>
+                    <Text style={{ fontFamily: "Cairo-SemiBold", fontSize: 12, color: Colors.textPrimary }}>
                       {debt.personName}
                     </Text>
                   </TouchableOpacity>
@@ -288,22 +405,24 @@ export function AddTransactionSheet({ visible, onClose }: { visible: boolean; on
             <TextInput
               value={personName}
               onChangeText={setPersonName}
-              placeholder='اختر شخصًا أو اكتب اسمًا جديدًا'
+              placeholder="اكتب اسم الشخص"
               placeholderTextColor={Colors.textMuted}
-              style={[inputStyle, { textAlign: 'right' }]}
+              style={[inputStyle, { textAlign: "right" }]}
             />
           </View>
-        ) : null}
+        )}
 
-        {flow === 'debt_payment' && entryType !== 'transfer' ? (
+        {flow === "debt_payment" && entryType !== "transfer" && (
           <View>
             <Text style={inputLabel}>اختر الدين المفتوح</Text>
             {relevantDebts.length === 0 ? (
-              <Text style={{ fontFamily: 'Cairo-Regular', fontSize: 13, color: Colors.danger }}>لا يوجد دين مفتوح مناسب لهذه العملية.</Text>
+              <Text style={{ fontFamily: "Cairo-Regular", fontSize: 13, color: Colors.danger }}>
+                لا يوجد دين مفتوح مناسب لهذه العملية.
+              </Text>
             ) : (
               <View style={{ gap: 8 }}>
                 {relevantDebts.map((debt) => {
-                  const active = selectedDebtId === debt.id
+                  const active = selectedDebtId === debt.id;
                   return (
                     <TouchableOpacity
                       key={debt.id}
@@ -317,125 +436,136 @@ export function AddTransactionSheet({ visible, onClose }: { visible: boolean; on
                         gap: 2,
                       }}
                     >
-                      <Text style={{ fontFamily: 'Cairo-Bold', fontSize: 14, color: Colors.textPrimary }}>{debt.personName}</Text>
-                      <Text style={{ fontFamily: 'Cairo-Regular', fontSize: 12, color: Colors.textSecondary }}>
-                        المتبقي: {calcDebtRemaining(debt).toLocaleString('ar-EG')} جنيه
+                      <Text style={{ fontFamily: "Cairo-Bold", fontSize: 14, color: Colors.textPrimary }}>
+                        {debt.personName}
+                      </Text>
+                      <Text style={{ fontFamily: "Cairo-Regular", fontSize: 12, color: Colors.textSecondary }}>
+                        المتبقي: {calcDebtRemaining(debt).toLocaleString("ar-EG")} جنيه
                       </Text>
                     </TouchableOpacity>
-                  )
+                  );
                 })}
               </View>
             )}
           </View>
-        ) : null}
+        )}
 
         <View>
-          <Text style={inputLabel}>{entryType === 'transfer' ? 'اسم التحويل' : 'الاسم (اختياري)'}</Text>
+          <Text style={inputLabel}>{entryType === "transfer" ? "اسم التحويل" : "الاسم (اختياري)"}</Text>
           <TextInput
             value={name}
             onChangeText={setName}
-            placeholder={entryType === 'transfer' ? 'مثلاً: تحويل للبنك' : 'مثلاً: غداء'}
+            placeholder={entryType === "transfer" ? "مثلاً: تحويل للبنك" : "مثلاً: غداء"}
             placeholderTextColor={Colors.textMuted}
-            style={[inputStyle, { textAlign: 'right' }]}
+            style={[inputStyle, { textAlign: "right" }]}
           />
         </View>
 
-        <View>
-          <Text style={inputLabel}>{entryType === 'transfer' ? 'من محفظة *' : 'المحفظة *'}</Text>
-          {wallets.length === 0 ? (
-            <Text style={{ fontFamily: 'Cairo-Regular', fontSize: 13, color: Colors.danger }}>أضف محفظة أولاً</Text>
-          ) : (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {wallets.map((wallet) => (
-                <TouchableOpacity
-                  key={wallet.id}
-                  onPress={() => setWalletId(wallet.id)}
-                  style={{
-                    paddingHorizontal: 14,
-                    paddingVertical: 8,
-                    borderRadius: 20,
-                    backgroundColor: walletId === wallet.id ? Colors.primary : Colors.surface,
-                    borderWidth: 1,
-                    borderColor: walletId === wallet.id ? Colors.primary : Colors.border,
-                  }}
-                >
-                  <Text style={{ fontFamily: 'Cairo-SemiBold', fontSize: 13, color: walletId === wallet.id ? '#fff' : Colors.textSecondary }}>
-                    {wallet.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {entryType === 'transfer' ? (
+        {shouldRequireWallet && (
           <View>
-            <Text style={inputLabel}>إلى محفظة *</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {wallets.filter((wallet) => wallet.id !== walletId).map((wallet) => (
-                <TouchableOpacity
-                  key={wallet.id}
-                  onPress={() => setToWalletId(wallet.id)}
-                  style={{
-                    paddingHorizontal: 14,
-                    paddingVertical: 8,
-                    borderRadius: 20,
-                    backgroundColor: toWalletId === wallet.id ? Colors.primary : Colors.surface,
-                    borderWidth: 1,
-                    borderColor: toWalletId === wallet.id ? Colors.primary : Colors.border,
-                  }}
-                >
-                  <Text style={{ fontFamily: 'Cairo-SemiBold', fontSize: 13, color: toWalletId === wallet.id ? '#fff' : Colors.textSecondary }}>
-                    {wallet.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        ) : null}
-
-        {entryType !== 'transfer' ? (
-          <View>
-            <Text style={inputLabel}>ملاحظة</Text>
-            <TextInput
-              value={note}
-              onChangeText={setNote}
-              placeholder='وصف مختصر للمعاملة أو سبب الدين'
-              placeholderTextColor={Colors.textMuted}
-              multiline
-              style={[inputStyle, { minHeight: 80, textAlign: 'right', textAlignVertical: 'top', paddingTop: 12 }]}
-            />
-          </View>
-        ) : (
-          <View>
-            <Text style={inputLabel}>ملاحظة التحويل</Text>
-            <TextInput
-              value={note}
-              onChangeText={setNote}
-              placeholder='سبب التحويل (اختياري)'
-              placeholderTextColor={Colors.textMuted}
-              style={[inputStyle, { textAlign: 'right' }]}
-            />
+            <Text style={inputLabel}>{entryType === "transfer" ? "من محفظة *" : "المحفظة *"}</Text>
+            {wallets.length === 0 ? (
+              <Text style={{ fontFamily: "Cairo-Regular", fontSize: 13, color: Colors.danger }}>
+                أضف محفظة أولاً
+              </Text>
+            ) : (
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {wallets.map((wallet) => (
+                  <TouchableOpacity
+                    key={wallet.id}
+                    onPress={() => setWalletId(wallet.id)}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      borderRadius: 20,
+                      backgroundColor: walletId === wallet.id ? Colors.primary : Colors.surface,
+                      borderWidth: 1,
+                      borderColor: walletId === wallet.id ? Colors.primary : Colors.border,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: "Cairo-SemiBold",
+                        fontSize: 13,
+                        color: walletId === wallet.id ? "#fff" : Colors.textSecondary,
+                      }}
+                    >
+                      {wallet.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
         )}
 
-        {entryType !== 'transfer' ? (
+        {entryType === "transfer" && (
+          <View>
+            <Text style={inputLabel}>إلى محفظة *</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {wallets
+                .filter((wallet) => wallet.id !== walletId)
+                .map((wallet) => (
+                  <TouchableOpacity
+                    key={wallet.id}
+                    onPress={() => setToWalletId(wallet.id)}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      borderRadius: 20,
+                      backgroundColor: toWalletId === wallet.id ? Colors.primary : Colors.surface,
+                      borderWidth: 1,
+                      borderColor: toWalletId === wallet.id ? Colors.primary : Colors.border,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: "Cairo-SemiBold",
+                        fontSize: 13,
+                        color: toWalletId === wallet.id ? "#fff" : Colors.textSecondary,
+                      }}
+                    >
+                      {wallet.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+            </View>
+          </View>
+        )}
+
+        <View>
+          <Text style={inputLabel}>ملاحظة</Text>
+          <TextInput
+            value={note}
+            onChangeText={setNote}
+            placeholder="وصف مختصر للعملية"
+            placeholderTextColor={Colors.textMuted}
+            multiline
+            style={[inputStyle, { minHeight: 80, textAlign: "right", textAlignVertical: "top", paddingTop: 12 }]}
+          />
+        </View>
+
+        {entryType !== "transfer" && (
           <View>
             <Text style={inputLabel}>الموقع (اختياري)</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <TouchableOpacity
                 onPress={async () => {
-                  setLoadingLoc(true)
-                  const currentLocation = await getCurrentLocation()
+                  setLoadingLoc(true);
+                  const currentLocation = await getCurrentLocation();
                   if (currentLocation) {
-                    setLocation({ latitude: currentLocation.lat, longitude: currentLocation.lng, placeName: currentLocation.placeName })
+                    setLocation({
+                      latitude: currentLocation.lat,
+                      longitude: currentLocation.lng,
+                      placeName: currentLocation.placeName,
+                    });
                   }
-                  setLoadingLoc(false)
+                  setLoadingLoc(false);
                 }}
                 style={{
                   flex: 1,
-                  flexDirection: 'row',
-                  alignItems: 'center',
+                  flexDirection: "row",
+                  alignItems: "center",
                   gap: 8,
                   padding: 12,
                   borderRadius: 12,
@@ -444,31 +574,39 @@ export function AddTransactionSheet({ visible, onClose }: { visible: boolean; on
                   borderColor: location ? Colors.primary : Colors.border,
                 }}
               >
-                <Ionicons name='location-outline' size={18} color={location ? Colors.primary : Colors.textSecondary} />
-                <Text style={{ fontFamily: 'Cairo-Regular', fontSize: 14, color: location ? Colors.primary : Colors.textSecondary, flex: 1 }} numberOfLines={1}>
-                  {loadingLoc ? 'جاري تحديد الموقع...' : location ? location.placeName : 'أضف الموقع'}
+                <Ionicons name="location-outline" size={18} color={location ? Colors.primary : Colors.textSecondary} />
+                <Text
+                  style={{
+                    fontFamily: "Cairo-Regular",
+                    fontSize: 14,
+                    color: location ? Colors.primary : Colors.textSecondary,
+                    flex: 1,
+                  }}
+                  numberOfLines={1}
+                >
+                  {loadingLoc ? "جاري تحديد الموقع..." : location ? location.placeName : "أضف الموقع"}
                 </Text>
               </TouchableOpacity>
               {location ? (
                 <TouchableOpacity onPress={() => setLocation(null)}>
-                  <Ionicons name='close' size={16} color={Colors.textMuted} />
+                  <Ionicons name="close" size={16} color={Colors.textMuted} />
                 </TouchableOpacity>
               ) : null}
             </View>
           </View>
-        ) : null}
+        )}
 
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
-          <PrimaryButton label='إلغاء' variant='outline' onPress={onClose} style={{ flex: 1 }} />
+        <View style={{ flexDirection: "row", gap: 8, marginTop: 6 }}>
+          <PrimaryButton label="إلغاء" variant="outline" onPress={onClose} style={{ flex: 1 }} />
           <PrimaryButton
-            label='💾 حفظ'
+            label="💾 حفظ"
             onPress={handleSave}
             disabled={
-              !amount
-              || !walletId
-              || (entryType === 'transfer' && !toWalletId)
-              || (entryType !== 'transfer' && flow === 'debt_new' && !personName.trim())
-              || (entryType !== 'transfer' && flow === 'debt_payment' && !selectedDebtId)
+              !amount ||
+              (shouldRequireWallet && !walletId) ||
+              (entryType === "transfer" && !toWalletId) ||
+              (entryType !== "transfer" && flow === "debt_new" && !personName.trim()) ||
+              (entryType !== "transfer" && flow === "debt_payment" && !selectedDebtId)
             }
             style={{ flex: 1 }}
           />
@@ -477,5 +615,6 @@ export function AddTransactionSheet({ visible, onClose }: { visible: boolean; on
         <View style={{ height: 20 }} />
       </View>
     </BottomSheet>
-  )
+  );
 }
+

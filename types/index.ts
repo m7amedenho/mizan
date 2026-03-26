@@ -6,6 +6,10 @@ export interface AppSettings {
   pomodoroLongBreak: number
   balanceHidden: boolean
   notificationsEnabled: boolean
+  appLockEnabled: boolean
+  biometricEnabled: boolean
+  autoSaveSalaryEnabled: boolean
+  autoSaveSalaryRate: number
 }
 
 export type Priority = 'high' | 'medium' | 'low'
@@ -68,6 +72,7 @@ export interface Wallet {
   name: string
   type: WalletType
   balance: number
+  reservedBalance: number
   createdAt: string
 }
 
@@ -80,6 +85,8 @@ export interface Transaction {
   name: string
   walletId: string
   toWalletId?: string
+  walletImpactMode?: 'affect_wallet' | 'record_only'
+  autoSavedAmount?: number
   date: string
   note?: string
   debtId?: string
@@ -99,6 +106,8 @@ export interface Debt {
   id: string
   direction: 'owed_to_me' | 'i_owe'
   personName: string
+  contactId?: string
+  contactNameSnapshot?: string
   totalAmount: number
   payments: Payment[]
   date: string

@@ -3,6 +3,8 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { storage } from "@/utils/storage";
 import { Budget, Debt, Payment, Transaction, Wallet } from "@/types";
 import { generateId, getTodayString } from "@/utils/dateHelpers";
+import { useAppStore } from "@/stores/useAppStore";
+import { calcDebtRemaining } from "@/utils/financialCalc";
 
 interface TransferInput {
   amount: number;
@@ -18,22 +20,41 @@ interface TransferResult {
   error?: string;
 }
 
+export interface FinanceSummary {
+  walletBalance: number;
+  reservedBalance: number;
+  availableBalance: number;
+  receivables: number;
+  payables: number;
+  netPosition: number;
+}
+
 interface FinanceState {
   wallets: Wallet[];
   transactions: Transaction[];
   debts: Debt[];
   budgets: Budget[];
-  addWallet: (w: Omit<Wallet, "id" | "createdAt">) => void;
+  addWallet: (w: Omit<Wallet, "id" | "createdAt" | "reservedBalance">) => void;
   updateWallet: (id: string, partial: Partial<Wallet>) => void;
   deleteWallet: (id: string) => void;
-  addTransaction: (t: Omit<Transaction, "id" | "createdAt">) => void;
+  addTransaction: (t: Omit<Transaction, "id" | "createdAt">) => {
+    ok: boolean;
+    error?: string;
+  };
   addTransfer: (transfer: TransferInput) => TransferResult;
   getWalletById: (id: string) => Wallet | undefined;
+  getWalletAvailableBalance: (id: string) => number;
+  canSpendFromWallet: (id: string, amount: number) => boolean;
   deleteTransaction: (id: string) => void;
   getTotalBalance: () => number;
   getMonthlyExpenses: (month: string) => number;
   getMonthlyIncome: (month: string) => number;
-  addDebt: (d: Omit<Debt, "id" | "createdAt" | "payments" | "settled">) => void;
+  getReceivablesTotal: () => number;
+  getPayablesTotal: () => number;
+  getFinanceSummary: () => FinanceSummary;
+  addDebt: (
+    d: Omit<Debt, "id" | "createdAt" | "payments" | "settled">,
+  ) => void;
   addPayment: (
     debtId: string,
     amount: number,
@@ -56,11 +77,17 @@ const sumPayments = (payments: Payment[]) =>
 
 const withSettlement = (debt: Debt): Debt => ({
   ...debt,
-  settled:
-    debt.totalAmount > 0 && sumPayments(debt.payments) >= debt.totalAmount,
+  settled: debt.totalAmount > 0 && sumPayments(debt.payments) >= debt.totalAmount,
 });
 
-const walletDeltaForTransaction = (
+const normalizeWallet = (wallet: Wallet): Wallet => ({
+  ...wallet,
+  reservedBalance: Number.isFinite(wallet.reservedBalance)
+    ? Math.max(0, wallet.reservedBalance)
+    : 0,
+});
+
+const getWalletDeltaForTransaction = (
   transaction: Transaction,
   walletId: string,
 ): number => {
@@ -70,10 +97,9 @@ const walletDeltaForTransaction = (
     return 0;
   }
 
+  if (transaction.walletImpactMode === "record_only") return 0;
   if (transaction.walletId !== walletId) return 0;
-  return transaction.type === "income"
-    ? transaction.amount
-    : -transaction.amount;
+  return transaction.type === "income" ? transaction.amount : -transaction.amount;
 };
 
 const applyTransactionToWallets = (
@@ -81,12 +107,24 @@ const applyTransactionToWallets = (
   transaction: Transaction,
   multiplier: 1 | -1 = 1,
 ): Wallet[] =>
-  wallets.map((wallet) => ({
-    ...wallet,
-    balance:
+  wallets.map((wallet) => {
+    const nextBalance =
       wallet.balance +
-      walletDeltaForTransaction(transaction, wallet.id) * multiplier,
-  }));
+      getWalletDeltaForTransaction(transaction, wallet.id) * multiplier;
+
+    const reservedDelta =
+      transaction.walletImpactMode === "record_only"
+        ? 0
+        : transaction.walletId === wallet.id
+          ? (transaction.autoSavedAmount ?? 0) * multiplier
+          : 0;
+
+    return normalizeWallet({
+      ...wallet,
+      balance: nextBalance,
+      reservedBalance: Math.max(0, wallet.reservedBalance + reservedDelta),
+    });
+  });
 
 const findOpenDebt = (
   debts: Debt[],
@@ -127,6 +165,8 @@ const attachDebtForNewTransaction = (
           date: transaction.date,
           note: transaction.note,
           settled: false,
+          contactId: undefined,
+          contactNameSnapshot: undefined,
           createdAt: new Date().toISOString(),
         },
       ],
@@ -168,8 +208,7 @@ const attachDebtPaymentToTransaction = (
       ];
       return withSettlement({ ...debt, payments });
     }),
-    personName: debts.find((debt) => debt.id === transaction.debtId)
-      ?.personName,
+    personName: debts.find((debt) => debt.id === transaction.debtId)?.personName,
   };
 };
 
@@ -183,7 +222,6 @@ const rollbackDebtForTransaction = (
 
       const paid = sumPayments(debt.payments);
       const nextTotal = Math.max(0, debt.totalAmount - transaction.amount);
-
       if (nextTotal === 0 && paid === 0) return [];
 
       return [
@@ -208,6 +246,16 @@ const rollbackDebtForTransaction = (
   return debts;
 };
 
+const calcReceivables = (debts: Debt[]) =>
+  debts
+    .filter((debt) => debt.direction === "owed_to_me")
+    .reduce((sum, debt) => sum + calcDebtRemaining(debt), 0);
+
+const calcPayables = (debts: Debt[]) =>
+  debts
+    .filter((debt) => debt.direction === "i_owe")
+    .reduce((sum, debt) => sum + calcDebtRemaining(debt), 0);
+
 export const useFinanceStore = create<FinanceState>()(
   persist(
     (set, get) => ({
@@ -219,31 +267,74 @@ export const useFinanceStore = create<FinanceState>()(
         set((state) => ({
           wallets: [
             ...state.wallets,
-            {
+            normalizeWallet({
               ...wallet,
+              reservedBalance: 0,
               id: generateId(),
               createdAt: new Date().toISOString(),
-            },
+            }),
           ],
         })),
       updateWallet: (id, partial) =>
         set((state) => ({
           wallets: state.wallets.map((wallet) =>
-            wallet.id === id ? { ...wallet, ...partial } : wallet,
+            wallet.id === id ? normalizeWallet({ ...wallet, ...partial }) : wallet,
           ),
         })),
       getWalletById: (id) => get().wallets.find((wallet) => wallet.id === id),
+      getWalletAvailableBalance: (id) => {
+        const wallet = get().getWalletById(id);
+        if (!wallet) return 0;
+        return wallet.balance - wallet.reservedBalance;
+      },
+      canSpendFromWallet: (id, amount) => get().getWalletAvailableBalance(id) >= amount,
       deleteWallet: (id) =>
         set((state) => ({
           wallets: state.wallets.filter((wallet) => wallet.id !== id),
         })),
       addTransaction: (transactionInput) => {
         const transactionId = generateId();
+        const appSettings = useAppStore.getState().settings;
+
+        let autoSavedAmount = 0;
+        if (
+          transactionInput.type === "income" &&
+          transactionInput.flow === "regular" &&
+          transactionInput.category === "salary" &&
+          transactionInput.walletImpactMode !== "record_only" &&
+          appSettings.autoSaveSalaryEnabled &&
+          appSettings.autoSaveSalaryRate > 0
+        ) {
+          autoSavedAmount = Number(
+            ((transactionInput.amount * appSettings.autoSaveSalaryRate) / 100).toFixed(2),
+          );
+        }
+
         const baseTransaction: Transaction = {
           ...transactionInput,
+          walletImpactMode: transactionInput.walletImpactMode ?? "affect_wallet",
+          autoSavedAmount: autoSavedAmount > 0 ? autoSavedAmount : undefined,
           id: transactionId,
           createdAt: new Date().toISOString(),
         };
+
+        const sourceWallet = get().wallets.find(
+          (wallet) => wallet.id === baseTransaction.walletId,
+        );
+
+        if (baseTransaction.walletImpactMode !== "record_only" && !sourceWallet) {
+          return { ok: false, error: "المحفظة غير موجودة." };
+        }
+
+        if (
+          baseTransaction.type === "expense" &&
+          baseTransaction.flow !== "transfer" &&
+          baseTransaction.walletImpactMode !== "record_only" &&
+          sourceWallet &&
+          sourceWallet.balance - sourceWallet.reservedBalance < baseTransaction.amount
+        ) {
+          return { ok: false, error: `المتاح في ${sourceWallet.name} لا يكفي بعد خصم التحويش.` };
+        }
 
         set((state) => {
           let nextTransaction = baseTransaction;
@@ -260,10 +351,7 @@ export const useFinanceStore = create<FinanceState>()(
           }
 
           if (baseTransaction.flow === "debt_payment") {
-            const linked = attachDebtPaymentToTransaction(
-              debts,
-              baseTransaction,
-            );
+            const linked = attachDebtPaymentToTransaction(debts, baseTransaction);
             debts = linked.debts;
             nextTransaction = {
               ...baseTransaction,
@@ -277,6 +365,8 @@ export const useFinanceStore = create<FinanceState>()(
             debts,
           };
         });
+
+        return { ok: true };
       },
       addTransfer: ({ amount, fromWalletId, toWalletId, date, name, note }) => {
         if (
@@ -285,21 +375,22 @@ export const useFinanceStore = create<FinanceState>()(
           !fromWalletId ||
           !toWalletId ||
           fromWalletId === toWalletId
-        )
+        ) {
           return { ok: false, error: "بيانات التحويل غير مكتملة." };
-        const sourceWallet = get().wallets.find(
-          (wallet) => wallet.id === fromWalletId,
-        );
+        }
+
+        const sourceWallet = get().wallets.find((wallet) => wallet.id === fromWalletId);
         if (!sourceWallet) {
           return { ok: false, error: "المحفظة المصدر غير موجودة." };
         }
-        if (sourceWallet.balance < amount) {
+        if (sourceWallet.balance - sourceWallet.reservedBalance < amount) {
           return {
             ok: false,
-            error: `الرصيد الحالي في ${sourceWallet.name} لا يكفي لهذا التحويل.`,
+            error: `المتاح في ${sourceWallet.name} لا يكفي لهذا التحويل.`,
           };
         }
-        get().addTransaction({
+
+        const result = get().addTransaction({
           type: "expense",
           flow: "transfer",
           amount,
@@ -309,8 +400,10 @@ export const useFinanceStore = create<FinanceState>()(
           toWalletId,
           date: date || getTodayString(),
           note,
+          walletImpactMode: "affect_wallet",
         });
-        return { ok: true };
+
+        return result.ok ? { ok: true } : result;
       },
       deleteTransaction: (id) =>
         set((state) => {
@@ -323,14 +416,34 @@ export const useFinanceStore = create<FinanceState>()(
             debts: rollbackDebtForTransaction(state.debts, transaction),
           };
         }),
-      getTotalBalance: () =>
-        get().wallets.reduce((sum, wallet) => sum + wallet.balance, 0),
+      getTotalBalance: () => get().wallets.reduce((sum, wallet) => sum + wallet.balance, 0),
+      getReceivablesTotal: () => calcReceivables(get().debts),
+      getPayablesTotal: () => calcPayables(get().debts),
+      getFinanceSummary: () => {
+        const walletBalance = get().getTotalBalance();
+        const reservedBalance = get().wallets.reduce(
+          (sum, wallet) => sum + wallet.reservedBalance,
+          0,
+        );
+        const receivables = get().getReceivablesTotal();
+        const payables = get().getPayablesTotal();
+        const availableBalance = walletBalance - reservedBalance;
+        return {
+          walletBalance,
+          reservedBalance,
+          availableBalance,
+          receivables,
+          payables,
+          netPosition: walletBalance + receivables - payables,
+        };
+      },
       getMonthlyExpenses: (month) =>
         get()
           .transactions.filter(
             (transaction) =>
               transaction.type === "expense" &&
               transaction.flow !== "transfer" &&
+              transaction.walletImpactMode !== "record_only" &&
               transaction.date.startsWith(month),
           )
           .reduce((sum, transaction) => sum + transaction.amount, 0),
@@ -340,6 +453,7 @@ export const useFinanceStore = create<FinanceState>()(
             (transaction) =>
               transaction.type === "income" &&
               transaction.flow !== "transfer" &&
+              transaction.walletImpactMode !== "record_only" &&
               transaction.date.startsWith(month),
           )
           .reduce((sum, transaction) => sum + transaction.amount, 0),
@@ -414,6 +528,7 @@ export const useFinanceStore = create<FinanceState>()(
             (transaction) =>
               transaction.type === "expense" &&
               transaction.flow !== "transfer" &&
+              transaction.walletImpactMode !== "record_only" &&
               transaction.category === category &&
               transaction.date.startsWith(month),
           )
@@ -429,6 +544,21 @@ export const useFinanceStore = create<FinanceState>()(
         };
       },
     }),
-    { name: "finance-store", storage: createJSONStorage(() => storage) },
+    {
+      name: "finance-store",
+      storage: createJSONStorage(() => storage),
+      merge: (persistedState, currentState) => {
+        const incoming = (persistedState as Partial<FinanceState>) ?? {};
+        return {
+          ...currentState,
+          ...incoming,
+          wallets: (incoming.wallets ?? currentState.wallets).map(normalizeWallet),
+          transactions: incoming.transactions ?? currentState.transactions,
+          debts: incoming.debts ?? currentState.debts,
+          budgets: incoming.budgets ?? currentState.budgets,
+        };
+      },
+    },
   ),
 );
+

@@ -18,7 +18,7 @@ export const exportBackup = async (): Promise<boolean> => {
   try {
     const data: Record<string, unknown> = {
       exportedAt: new Date().toISOString(),
-      version: '1.0.0',
+      version: '1.1.0',
     }
 
     for (const key of STORE_KEYS) {
@@ -56,6 +56,8 @@ export const exportBackup = async (): Promise<boolean> => {
 export const importBackup = async (jsonString: string): Promise<boolean> => {
   try {
     const data = JSON.parse(jsonString) as Record<string, unknown>
+    if (!data || typeof data !== 'object') return false
+
     for (const key of STORE_KEYS) {
       if (data[key]) {
         storage.setItem(key, JSON.stringify(data[key]))
