@@ -17,6 +17,7 @@ import { useAppStore } from "@/stores/useAppStore";
 import { Colors } from "@/constants/colors";
 import { authenticateBiometric } from "@/utils/biometric";
 import { refreshSmartNotifications } from "@/utils/smartNotifications";
+import React from "react";
 
 I18nManager.forceRTL(true);
 I18nManager.allowRTL(true);

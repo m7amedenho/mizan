@@ -8,6 +8,7 @@ import { useFinanceStore } from "@/stores/useFinanceStore";
 import { getTodayString } from "@/utils/dateHelpers";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { inputLabel, inputStyle } from "@/constants/styles";
+import React from "react";
 
 export function AddDebtSheet({
   visible,
